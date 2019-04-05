@@ -254,6 +254,96 @@ static bool IsEffectiveProperty(const EffectSet& aEffects,
          !aEffects.PropertiesForAnimationsLevel().HasProperty(aProperty);
 }
 
+FillSnapshot KeyframeEffect::GetFillSnapshot() const {
+  MOZ_ASSERT(
+      mAnimation && mAnimation->PlayState() == AnimationPlayState::Finished,
+      "We should only get the fill values for a finished animation");
+
+  FillSnapshot result;
+
+  ComputedTiming computedTiming = GetComputedTiming();
+  if (computedTiming.mProgress.IsNull()) {
+    return result;
+  }
+  double totalProgress = computedTiming.mProgress.Value();
+
+  for (const AnimationProperty& prop : mProperties) {
+    const AnimationPropertySegment& segment =
+        GetSegmentForProgress(prop, computedTiming.mProgress.Value());
+
+    double segmentProgress;
+    if (segment.mToKey == segment.mFromKey) {
+      segmentProgress = totalProgress < 0.0 ? 0.0 : 1.0;
+    } else {
+      segmentProgress = KeyframeUtils::GetPositionInSegment(
+          segment, totalProgress, computedTiming.mBeforeFlag);
+    }
+
+    Maybe<FillValue> fromValue = Nothing();
+    FillValue toValue = {Servo_GetSpecifiedKeyframeValues(
+                             &mKeyframes, prop.mProperty, segment.mToKey)
+                             .Consume(),
+                         segment.mToComposite};
+
+    // If we are mid-way through a segment, we need to keep both ends. There are
+    // two reasons for this.
+    //
+    // (a) One or more of the specified values might be context-sensitive.
+    //
+    //     e.g. we could have a segment from 20px -> 1em. If the font-size
+    //     changes we need to recompute the endpoints and re-interpolate.
+    //
+    //     That's unfortunate because if we have 20px -> 40px we _could_ just do
+    //     the interpolation now and store only that value but we don't have
+    //     a convenient means of detecting context-sensitive values yet.
+    //
+    // (b) One or more of the endpoints might have a composite mode other than
+    //     'replace'.
+    //
+    //     e.g. we could be animating from 20px, composite: 'replace' to 40px,
+    //     composite: 'add'. If the base value changes, we'll need to recompute
+    //     the endpoints and re-interpolate.
+    //
+    //     It might seem like this only really matters if we have _mismatching_
+    //     composite values. If they are both 'add', for example, we could still
+    //     do the interpolation and then just add the result, right?
+    //
+    //     The trouble is animation composition works by _first_ compositing the
+    //     endpoints _then_ doing the interpolation, not the other way around.
+    //     If we change this order we'll likely get some edge cases where the
+    //     result differs, particularly when matching transform lists.
+    //
+    if (segmentProgress != 1.0) {
+      fromValue = Some(FillValue{
+          Servo_GetSpecifiedKeyframeValues(&mKeyframes, prop.mProperty,
+                                           segment.mFromKey)
+              .Consume(),
+          segment.mFromComposite,
+      });
+    }
+
+    FillPropertySnapshot propertySnapshot = {prop.mProperty, fromValue, toValue,
+                                             segmentProgress};
+
+    // If we have an accumulate iteration composite mode, we might need to store
+    // the last value (to accumulate onto) as well.
+    if (mEffectOptions.mIterationComposite ==
+            IterationCompositeOperation::Accumulate &&
+        computedTiming.mCurrentIteration > 0) {
+      FillValue lastValue = {
+          Servo_GetSpecifiedKeyframeValues(&mKeyframes, prop.mProperty, 1.0)
+              .Consume(),
+          CompositeOperation::Replace};
+      propertySnapshot.mLastValue = Some(std::move(lastValue));
+      propertySnapshot.mCurrentIteration = computedTiming.mCurrentIteration;
+    }
+
+    result.AppendElement(std::move(propertySnapshot));
+  }
+
+  return result;
+}
+
 const AnimationProperty* KeyframeEffect::GetEffectiveAnimationOfProperty(
     nsCSSPropertyID aProperty, const EffectSet& aEffects) const {
   MOZ_ASSERT(&aEffects ==

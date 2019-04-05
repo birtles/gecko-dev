@@ -21,6 +21,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/ComputedTimingFunction.h"
 #include "mozilla/EffectCompositor.h"
+#include "mozilla/FillSnapshot.h"
 #include "mozilla/Keyframe.h"
 #include "mozilla/KeyframeEffectParams.h"
 // RawServoDeclarationBlock and associated RefPtrTraits
@@ -184,6 +185,7 @@ class KeyframeEffect : public AnimationEffect,
                     ErrorResult& aRv);
   void SetKeyframes(nsTArray<Keyframe>&& aKeyframes,
                     const ComputedStyle* aStyle);
+  FillSnapshot GetFillSnapshot() const;
 
   // Returns true if the effect includes a property in |aPropertySet| regardless
   // of whether any property in the set is overridden by !important rule.

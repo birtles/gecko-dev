@@ -1,0 +1,157 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>The effect value of a keyframe effect: Filling</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#the-effect-value-of-a-keyframe-animation-effect">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+// User agents may follow a different code path for handling indefinitely
+// filling animations. This test ensures that some of the more complex behavior
+// for resolving keyframes is still correctly performed while filling.
+
+test(t => {
+  // The last keyframe's value should be used when filling
+  const anim = createDiv(t).animate(
+    [
+      { opacity: 0 },
+      { offset: 1, opacity: 1 },
+      { offset: 1, opacity: 0.7 },
+    ],
+    { duration: 1000, fill: 'forwards' }
+  );
+
+  // Regular playback
+  anim.currentTime = 500;
+  assert_equals(getComputedStyle(anim.effect.target).opacity, '0.5');
+
+  // Filling
+  anim.currentTime = 1000;
+  assert_equals(getComputedStyle(anim.effect.target).opacity, '0.7');
+}, 'Resolves filling overlapping final keyframes correctly');
+
+test(t => {
+  // Longhands should win over shorthands
+  const anim = createDiv(t).animate(
+    [
+      { margin: '10px' },
+      { marginLeft: '30px', margin: '20px' },
+    ],
+    { duration: 1000, fill: 'forwards' }
+  );
+
+  // Regular playback
+  anim.currentTime = 500;
+  assert_equals(getComputedStyle(anim.effect.target).marginLeft, '20px');
+
+  // Filling
+  anim.currentTime = 1000;
+  assert_equals(getComputedStyle(anim.effect.target).marginLeft, '30px');
+}, 'Resolves filling shorthands and longhands correctly');
+
+test(t => {
+  // Physical properties should win over logical properties
+  const anim = createDiv(t).animate(
+    [
+      { height: '200px', blockSize: '0px' },
+      { height: '300px', blockSize: '100px' },
+    ],
+    { duration: 1000, fill: 'forwards' }
+  );
+
+  // Regular playback
+  anim.currentTime = 500;
+  assert_equals(getComputedStyle(anim.effect.target).height, '250px');
+
+  // Filling
+  anim.currentTime = 1000;
+  assert_equals(getComputedStyle(anim.effect.target).height, '300px');
+}, 'Resolves filling physical and logical properties correctly');
+
+test(t => {
+  // Logical longhands should win over physical shorthands
+  const anim = createDiv(t).animate(
+    [
+      { marginInlineStart: '100px', margin: '300px' },
+      { marginInlineStart: '200px', margin: '400px' },
+    ],
+    { duration: 1000, fill: 'forwards' }
+  );
+
+  // Regular playback
+  anim.currentTime = 500;
+  assert_equals(getComputedStyle(anim.effect.target).marginLeft, '150px');
+
+  // Filling
+  anim.currentTime = 1000;
+  assert_equals(getComputedStyle(anim.effect.target).marginLeft, '200px');
+}, 'Resolves filling physical shorthands and logical longhand properties'
+   + ' correctly');
+
+test(t => {
+  // The last keyframe's value should be used when filling
+  const anim = createDiv(t).animate(
+    [
+      { margin: '100px' },
+      { offset: 1, marginInlineStart: '200px' },
+      { offset: 1, margin: '300px' },
+    ],
+    { duration: 1000, fill: 'forwards' }
+  );
+
+  // Regular playback
+  anim.currentTime = 500;
+  assert_equals(getComputedStyle(anim.effect.target).marginLeft, '150px');
+
+  // Filling
+  anim.currentTime = 1000;
+  assert_equals(getComputedStyle(anim.effect.target).marginLeft, '200px');
+}, 'Resolves a combination of overlapping, shorthand, and logical logical'
+   + ' properties correctly');
+
+test(t => {
+  // Longhands should win over shorthands
+  const anim = createDiv(t).animate(
+    [
+      { margin: '0px' },
+      { margin: 'var(--end)' }
+    ],
+    { duration: 1000, fill: 'forwards' }
+  );
+  anim.effect.target.style.setProperty('--end', '100px');
+
+  // Regular playback
+  anim.currentTime = 500;
+  assert_equals(getComputedStyle(anim.effect.target).marginLeft, '50px');
+
+  // Filling
+  anim.currentTime = 1000;
+  assert_equals(getComputedStyle(anim.effect.target).marginLeft, '100px');
+}, 'Resolves filling properties with variables correctly');
+
+test(t => {
+  // Longhands should win over shorthands
+  const anim = createDiv(t).animate(
+    [
+      { marginLeft: '0px' },
+      { marginLeft: 'calc(var(--end) * 2)' }
+    ],
+    { duration: 1000, fill: 'forwards' }
+  );
+  anim.effect.target.style.setProperty('--end', '100px');
+
+  // Regular playback
+  anim.currentTime = 500;
+  assert_equals(getComputedStyle(anim.effect.target).marginLeft, '100px');
+
+  // Filling
+  anim.currentTime = 1000;
+  assert_equals(getComputedStyle(anim.effect.target).marginLeft, '200px');
+}, 'Resolves filling properties with variables and calc() correctly');
+
+</script>
+</body>

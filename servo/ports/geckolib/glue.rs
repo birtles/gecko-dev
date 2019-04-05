@@ -5162,6 +5162,90 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_GetSpecifiedKeyframeValues(
+    keyframes: &nsTArray<structs::Keyframe>,
+    property_id: nsCSSPropertyID,
+    offset: f64,
+) -> Strong<RawServoDeclarationBlock> {
+    // |property_id| should be a physical longhand
+    let target_property = match LonghandId::from_nscsspropertyid(property_id) {
+        Ok(longhand) => longhand,
+        Err(()) => return Strong::null(),
+    };
+    debug_assert!(!target_property.is_logical());
+
+    let mut block = PropertyDeclarationBlock::new();
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let mut seen_any = false;
+
+    for keyframe in keyframes.iter() {
+        // We don't need to handle custom properties yet since they're currently not animatable and
+        // only appear in keyframes from CSS animations -- for which we don't use this method.
+        if cfg!(debug_assertions) {
+            for kf_property in keyframe.mPropertyValues.iter() {
+                debug_assert!(kf_property.mProperty != nsCSSPropertyID::eCSSPropertyExtra_variable);
+            }
+        }
+
+        // Unresolved computed keyframe offsets are represented as a negative value but they should
+        // all be resolved by this point.
+        debug_assert!(keyframe.mComputedOffset >= 0.);
+        if keyframe.mComputedOffset != offset {
+            continue;
+        }
+
+        let mut seen = LonghandIdSet::new();
+
+        for kf_property in PrioritizedPropertyIter::new(&keyframe.mPropertyValues) {
+            if simulate_compute_values_failure(kf_property) {
+                continue;
+            }
+
+            if kf_property.mServoDeclarationBlock.mRawPtr.is_null() {
+                continue;
+            }
+
+            let kf_declarations = unsafe { &*kf_property.mServoDeclarationBlock.mRawPtr.clone() };
+            let kf_declarations = Locked::<PropertyDeclarationBlock>::as_arc(&kf_declarations);
+            let guard = kf_declarations.read_with(&guard);
+
+            // Iterate in reverse to respect the source order in case there are logical and physical
+            // longhands in the same block.
+            for declaration in guard.normal_declaration_iter().rev() {
+                let id = declaration.id();
+
+                match id {
+                    PropertyDeclarationId::Longhand(id) => {
+                        // If the property matches or it is a logical property in the same logical
+                        // group, keep it.
+                        if !seen.contains(id) &&
+                            (id == target_property ||
+                                (id.is_logical() &&
+                                    id.logical_group() == target_property.logical_group()))
+                        {
+                            block.push(declaration.clone(), Importance::Normal);
+                            seen.insert(id);
+                        }
+                    },
+                    // We don't animate custom properties at the momoent
+                    PropertyDeclarationId::Custom(_) => {},
+                }
+            }
+        }
+
+        seen_any = seen_any || !seen.is_empty();
+    }
+
+    if !seen_any {
+        return Strong::null();
+    }
+
+    // Create the declarations block
+    Arc::new(global_style_data.shared_lock.wrap(block)).into_strong()
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_GetAnimationValues(
     declarations: &RawServoDeclarationBlock,
     element: &RawGeckoElement,
