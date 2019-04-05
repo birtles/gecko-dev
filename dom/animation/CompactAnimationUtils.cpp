@@ -123,4 +123,61 @@ static bool ShouldCompact(const Animation& aAnimation) {
 #endif
 }
 
+/* static */ void CompactAnimationUtils::RestoreAnimation(
+    Animation& aAnimation) {
+  // Break the link between the two effects
+  MOZ_ASSERT(
+      aAnimation.GetEffect() && aAnimation.GetEffect()->AsKeyframeEffect(),
+      "The animation to restore should have a keyframe effect");
+
+  RefPtr<KeyframeEffect> sourceEffect =
+      aAnimation.GetEffect()->AsKeyframeEffect();
+
+  MOZ_ASSERT(sourceEffect->GetLinkedEffect() &&
+                 sourceEffect->GetLinkedEffect()->AsCompactFillEffect(),
+             "The animation to restore should be linked to a compacted effect");
+  RefPtr<KeyframeEffect> compactedEffect = sourceEffect->GetLinkedEffect();
+
+  sourceEffect->SetLinkedEffect(nullptr);
+  compactedEffect->SetLinkedEffect(nullptr);
+
+  // Cancel the compacted animation
+  //
+  // This needs to happen after breaking the link or else it will cause the
+  // linked source animation to also be canceled.
+  MOZ_ASSERT(
+      compactedEffect->GetAnimation(),
+      "The animation to restore should be linked to a compacted animation");
+  compactedEffect->GetAnimation()->Cancel();
+
+  // Check that the EffectSet registration has been updated
+#ifdef DEBUG
+  Maybe<NonOwningAnimationTarget> target = sourceEffect->GetTarget();
+  MOZ_ASSERT(
+      target,
+      "Should have a target element for the effect we are trying to restore");
+  EffectSet* effectSet =
+      EffectSet::GetEffectSet(target->mElement, target->mPseudoType);
+  MOZ_ASSERT(
+      effectSet || !aAnimation.IsRelevant(),
+      "Should have an effect set for an effect we are trying to restore if "
+      "its animation is relevant");
+
+  if (effectSet) {
+    bool foundSourceEffect = false;
+    for (KeyframeEffect* effect : *effectSet) {
+      MOZ_ASSERT(effect != compactedEffect,
+                 "The compacted effect should no longer be in the effect set");
+      if (effect == sourceEffect) {
+        foundSourceEffect = true;
+      }
+    }
+
+    MOZ_ASSERT(foundSourceEffect == aAnimation.IsRelevant(),
+               "The source effect should have been re-added to the effect set "
+               "but only if its animation is relevant");
+  }
+#endif
+}
+
 }  // namespace mozilla

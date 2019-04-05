@@ -16,6 +16,7 @@ class Animation;
 class CompactAnimationUtils {
  public:
   static void CompactAnimation(dom::Animation& aAnimation);
+  static void RestoreAnimation(dom::Animation& aAnimation);
 };
 
 }  // namespace mozilla
