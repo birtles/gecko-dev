@@ -525,6 +525,7 @@ class KeyframeEffect : public AnimationEffect,
   void UpdateEffectSet(mozilla::EffectSet* aEffectSet = nullptr) const;
 
   CompactFillEffect* GetCompactFillEffect();
+  void UpdateCompactFillEffect(const ComputedStyle* aStyle = nullptr);
 
   // Returns true if this effect has properties that might affect the overflow
   // region.

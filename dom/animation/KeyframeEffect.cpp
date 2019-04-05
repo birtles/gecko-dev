@@ -14,6 +14,7 @@
 #include "mozilla/dom/KeyframeEffectBinding.h"
 #include "mozilla/AnimationUtils.h"
 #include "mozilla/AutoRestore.h"
+#include "mozilla/CompactFillEffect.h"
 #include "mozilla/ComputedStyleInlines.h"
 #include "mozilla/EffectSet.h"
 #include "mozilla/FloatingPoint.h"  // For IsFinite
@@ -141,6 +142,10 @@ void KeyframeEffect::SetIterationComposite(
   }
 
   mEffectOptions.mIterationComposite = aIterationComposite;
+
+  RefPtr<ComputedStyle> computedStyle = GetTargetComputedStyle(Flush::None);
+  UpdateCompactFillEffect(computedStyle);
+
   RequestRestyle(EffectCompositor::RestyleType::Layer);
 }
 
@@ -159,12 +164,12 @@ void KeyframeEffect::SetComposite(const CompositeOperation& aComposite) {
     nsNodeUtils::AnimationChanged(mAnimation);
   }
 
-  if (mTarget) {
-    RefPtr<ComputedStyle> computedStyle = GetTargetComputedStyle(Flush::None);
-    if (computedStyle) {
-      UpdateProperties(computedStyle);
-    }
+  RefPtr<ComputedStyle> computedStyle = GetTargetComputedStyle(Flush::None);
+  if (computedStyle) {
+    UpdateProperties(computedStyle);
   }
+
+  UpdateCompactFillEffect(computedStyle);
 }
 
 void KeyframeEffect::NotifySpecifiedTimingUpdated() {
@@ -256,6 +261,8 @@ void KeyframeEffect::SetKeyframes(JSContext* aContext,
 
   RefPtr<ComputedStyle> style = GetTargetComputedStyle(Flush::None);
   SetKeyframes(std::move(keyframes), style);
+
+  UpdateCompactFillEffect(style);
 }
 
 void KeyframeEffect::SetKeyframes(nsTArray<Keyframe>&& aKeyframes,
@@ -1941,6 +1948,15 @@ void KeyframeEffect::UpdateEffectSet(EffectSet* aEffectSet) const {
 
 CompactFillEffect* KeyframeEffect::GetCompactFillEffect() {
   return mLinkedEffect ? mLinkedEffect->AsCompactFillEffect() : nullptr;
+}
+
+void KeyframeEffect::UpdateCompactFillEffect(const ComputedStyle* aStyle) {
+  CompactFillEffect* compactFillEffect = GetCompactFillEffect();
+  if (!compactFillEffect) {
+    return;
+  }
+
+  compactFillEffect->UpdateFill(GetFillSnapshot(), aStyle);
 }
 
 KeyframeEffect::MatchForCompositor KeyframeEffect::IsMatchForCompositor(
