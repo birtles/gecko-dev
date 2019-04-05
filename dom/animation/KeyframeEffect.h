@@ -368,7 +368,8 @@ class KeyframeEffect : public AnimationEffect,
   // Build properties by recalculating from |mKeyframes| using |aComputedStyle|
   // to resolve specified values. This function also applies paced spacing if
   // needed.
-  nsTArray<AnimationProperty> BuildProperties(const ComputedStyle* aStyle);
+  virtual nsTArray<AnimationProperty> BuildProperties(
+      const ComputedStyle* aStyle);
 
   // This effect is registered with its target element so long as:
   //

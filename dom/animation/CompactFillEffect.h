@@ -8,9 +8,11 @@
 #define mozilla_CompactFillEffect_h
 
 #include "mozilla/dom/KeyframeEffect.h"
+#include "mozilla/FillSnapshot.h"
 
 namespace mozilla {
 
+class ComputedStyle;
 struct OwningAnimationTarget;
 
 class CompactFillEffect : public dom::KeyframeEffect {
@@ -22,6 +24,12 @@ class CompactFillEffect : public dom::KeyframeEffect {
                     const OwningAnimationTarget& aTarget);
 
   NS_DECL_ISUPPORTS_INHERITED
+
+ protected:
+  nsTArray<AnimationProperty> BuildProperties(
+      const ComputedStyle* aStyle) override;
+
+  FillSnapshot mFillSnapshot;
 };
 
 }  // namespace mozilla
