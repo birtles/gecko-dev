@@ -12,6 +12,7 @@
 #include "nsTimingFunction.h"
 
 #include "mozilla/Assertions.h"
+#include "mozilla/FloatingPoint.h"  // For IsFinite
 #include "mozilla/Maybe.h"
 #include "mozilla/SMILKeySpline.h"
 
@@ -26,7 +27,8 @@ class ComputedTimingFunction {
     EaseOut = uint8_t(StyleTimingKeyword::EaseOut),      // ease-out
     EaseInOut = uint8_t(StyleTimingKeyword::EaseInOut),  // ease-in-out
     CubicBezier,                                         // cubic-bezier()
-    Step,  // step-start | step-end | steps()
+    Step,   // step-start | step-end | steps()
+    Fixed,  // Internal use only
   };
 
   struct StepFunc {
@@ -45,6 +47,10 @@ class ComputedTimingFunction {
     MOZ_ASSERT(aSteps > 0, "The number of steps should be 1 or more");
     return ComputedTimingFunction(aSteps, aPos);
   }
+  static ComputedTimingFunction Fixed(double aProgress) {
+    MOZ_ASSERT(IsFinite(aProgress));
+    return ComputedTimingFunction(aProgress);
+  }
 
   ComputedTimingFunction() = default;
   explicit ComputedTimingFunction(const nsTimingFunction& aFunction) {
@@ -61,15 +67,27 @@ class ComputedTimingFunction {
     return &mTimingFunction;
   }
   Type GetType() const { return mType; }
-  bool HasSpline() const { return mType != Type::Step; }
+  bool HasSpline() const { return mType != Type::Step && mType != Type::Fixed; }
   const StepFunc& GetSteps() const {
     MOZ_ASSERT(mType == Type::Step);
     return mSteps;
   }
+  double GetFixedProgress() const {
+    MOZ_ASSERT(mType == Type::Fixed);
+    return mFixedProgress;
+  }
   bool operator==(const ComputedTimingFunction& aOther) const {
-    return mType == aOther.mType &&
-           (HasSpline() ? mTimingFunction == aOther.mTimingFunction
-                        : mSteps == aOther.mSteps);
+    if (mType != aOther.mType) {
+      return false;
+    }
+
+    if (HasSpline()) {
+      return mTimingFunction == aOther.mTimingFunction;
+    } else if (mType == Type::Step) {
+      return mSteps == aOther.mSteps;
+    } else {
+      return mFixedProgress == aOther.mFixedProgress;
+    }
   }
   bool operator!=(const ComputedTimingFunction& aOther) const {
     return !(*this == aOther);
@@ -108,10 +126,13 @@ class ComputedTimingFunction {
       : mType(Type::CubicBezier), mTimingFunction(x1, y1, x2, y2) {}
   ComputedTimingFunction(uint32_t aSteps, StyleStepPosition aPos)
       : mType(Type::Step), mSteps{aSteps, aPos} {}
+  explicit ComputedTimingFunction(double aProgress)
+      : mType(Type::Fixed), mFixedProgress(aProgress) {}
 
   Type mType;
   SMILKeySpline mTimingFunction;
   StepFunc mSteps;
+  double mFixedProgress;
 };
 
 inline bool operator==(const Maybe<ComputedTimingFunction>& aLHS,

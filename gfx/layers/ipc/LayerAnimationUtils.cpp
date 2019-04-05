@@ -29,6 +29,10 @@ AnimationUtils::TimingFunctionToComputedTimingFunction(
       StyleStepPosition pos = static_cast<StyleStepPosition>(sf.type());
       return Some(ComputedTimingFunction::Steps(sf.steps(), pos));
     }
+    case TimingFunction::TFixedFunction: {
+      FixedFunction ff = aTimingFunction.get_FixedFunction();
+      return Some(ComputedTimingFunction::Fixed(ff.progress()));
+    }
     default:
       MOZ_ASSERT_UNREACHABLE("Function must be null, bezier, step or frames");
       break;

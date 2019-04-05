@@ -142,7 +142,11 @@ double ComputedTimingFunction::GetValue(
     return mTimingFunction.GetSplineValue(aPortion);
   }
 
-  return StepTiming(mSteps, aPortion, aBeforeFlag);
+  if (mType == Type::Step) {
+    return StepTiming(mSteps, aPortion, aBeforeFlag);
+  }
+
+  return mFixedProgress;
 }
 
 int32_t ComputedTimingFunction::Compare(
@@ -162,12 +166,26 @@ int32_t ComputedTimingFunction::Compare(
     } else if (mSteps.mSteps != aRhs.mSteps.mSteps) {
       return int32_t(mSteps.mSteps) - int32_t(aRhs.mSteps.mSteps);
     }
+  } else if (mType == Type::Fixed) {
+    return mFixedProgress < aRhs.mFixedProgress
+               ? (mFixedProgress < aRhs.mFixedProgress ? -1 : 1)
+               : 0;
   }
 
   return 0;
 }
 
 void ComputedTimingFunction::AppendToString(nsAString& aResult) const {
+  // We won't normally be serializing fixed timing functions--they're for
+  // internal use only--but it's possible we might want to print them for
+  // debugging.
+  if (mType == Type::Fixed) {
+    aResult.Append(NS_LITERAL_STRING("fixed("));
+    aResult.AppendFloat(mFixedProgress);
+    aResult.Append(NS_LITERAL_STRING(")"));
+    return;
+  }
+
   nsTimingFunction timing;
   switch (mType) {
     case Type::CubicBezier:

@@ -442,6 +442,10 @@ static TimingFunction ToTimingFunction(
                                               spline->X2(), spline->Y2()));
   }
 
+  if (aCTF->GetType() == ComputedTimingFunction::Type::Fixed) {
+    return TimingFunction(FixedFunction(aCTF->GetFixedProgress()));
+  }
+
   return TimingFunction(StepFunction(
       aCTF->GetSteps().mSteps, static_cast<uint8_t>(aCTF->GetSteps().mPos)));
 }

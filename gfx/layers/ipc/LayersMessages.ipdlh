@@ -100,10 +100,15 @@ struct StepFunction {
   uint8_t type; // Converted from StyleStepPosition.
 };
 
+struct FixedFunction {
+  float progress;
+};
+
 union TimingFunction {
   null_t;
   CubicBezierFunction;
   StepFunction;
+  FixedFunction;
 };
 
 // Send the angle with units rather than sending all angles in radians
