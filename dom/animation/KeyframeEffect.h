@@ -26,6 +26,7 @@
 // RawServoDeclarationBlock and associated RefPtrTraits
 #include "mozilla/ServoBindingTypes.h"
 #include "mozilla/StyleAnimationValue.h"
+#include "mozilla/WeakPtr.h"  // for SupportsWeakPtr
 #include "mozilla/dom/AnimationEffect.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/Element.h"
@@ -110,7 +111,8 @@ namespace dom {
 class Animation;
 class Document;
 
-class KeyframeEffect : public AnimationEffect {
+class KeyframeEffect : public AnimationEffect,
+                       public SupportsWeakPtr<KeyframeEffect> {
  public:
   KeyframeEffect(Document* aDocument,
                  const Maybe<OwningAnimationTarget>& aTarget,
@@ -119,6 +121,7 @@ class KeyframeEffect : public AnimationEffect {
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(KeyframeEffect,
                                                          AnimationEffect)
+  MOZ_DECLARE_WEAKREFERENCE_TYPENAME(KeyframeEffect)
 
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
