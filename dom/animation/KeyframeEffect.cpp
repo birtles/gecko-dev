@@ -530,40 +530,15 @@ void KeyframeEffect::ComposeStyle(RawServoAnimationValueMap& aComposeResult,
     return;
   }
 
-  for (size_t propIdx = 0, propEnd = mProperties.Length(); propIdx != propEnd;
-       ++propIdx) {
-    const AnimationProperty& prop = mProperties[propIdx];
-
-    MOZ_ASSERT(prop.mSegments[0].mFromKey == 0.0, "incorrect first from key");
-    MOZ_ASSERT(prop.mSegments[prop.mSegments.Length() - 1].mToKey == 1.0,
-               "incorrect last to key");
-
+  for (const AnimationProperty& prop : mProperties) {
     if (aPropertiesToSkip.HasProperty(prop.mProperty)) {
       continue;
     }
 
-    MOZ_ASSERT(prop.mSegments.Length() > 0,
-               "property should not be in animations if it has no segments");
+    const AnimationPropertySegment& segment =
+        GetSegmentForProgress(prop, computedTiming.mProgress.Value());
 
-    // FIXME: Maybe cache the current segment?
-    const AnimationPropertySegment *segment = prop.mSegments.Elements(),
-                                   *segmentEnd =
-                                       segment + prop.mSegments.Length();
-    while (segment->mToKey <= computedTiming.mProgress.Value()) {
-      MOZ_ASSERT(segment->mFromKey <= segment->mToKey, "incorrect keys");
-      if ((segment + 1) == segmentEnd) {
-        break;
-      }
-      ++segment;
-      MOZ_ASSERT(segment->mFromKey == (segment - 1)->mToKey, "incorrect keys");
-    }
-    MOZ_ASSERT(segment->mFromKey <= segment->mToKey, "incorrect keys");
-    MOZ_ASSERT(segment >= prop.mSegments.Elements() &&
-                   size_t(segment - prop.mSegments.Elements()) <
-                       prop.mSegments.Length(),
-               "out of array bounds");
-
-    ComposeStyleRule(aComposeResult, prop, *segment, computedTiming);
+    ComposeStyleRule(aComposeResult, prop, segment, computedTiming);
   }
 
   // If the animation produces a change hint that affects the overflow region,
@@ -583,6 +558,37 @@ void KeyframeEffect::ComposeStyle(RawServoAnimationValueMap& aComposeResult,
       effectSet->UpdateLastOverflowAnimationSyncTime(now);
     }
   }
+}
+
+const AnimationPropertySegment& KeyframeEffect::GetSegmentForProgress(
+    const AnimationProperty& aProperty, double aProgress) const {
+  MOZ_ASSERT(aProperty.mSegments[0].mFromKey == 0.0,
+             "incorrect first from key");
+  MOZ_ASSERT(
+      aProperty.mSegments[aProperty.mSegments.Length() - 1].mToKey == 1.0,
+      "incorrect last to key");
+  MOZ_ASSERT(aProperty.mSegments.Length() > 0,
+             "property should not be in animations if it has no segments");
+
+  const AnimationPropertySegment *segment = aProperty.mSegments.Elements(),
+                                 *segmentEnd =
+                                     segment + aProperty.mSegments.Length();
+  while (segment->mToKey <= aProgress) {
+    MOZ_ASSERT(segment->mFromKey <= segment->mToKey, "incorrect keys");
+    if ((segment + 1) == segmentEnd) {
+      break;
+    }
+    ++segment;
+    MOZ_ASSERT(segment->mFromKey == (segment - 1)->mToKey, "incorrect keys");
+  }
+
+  MOZ_ASSERT(segment->mFromKey <= segment->mToKey, "incorrect keys");
+  MOZ_ASSERT(segment >= aProperty.mSegments.Elements() &&
+                 size_t(segment - aProperty.mSegments.Elements()) <
+                     aProperty.mSegments.Length(),
+             "out of array bounds");
+
+  return *segment;
 }
 
 bool KeyframeEffect::IsRunningOnCompositor() const {

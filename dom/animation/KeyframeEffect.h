@@ -401,6 +401,8 @@ class KeyframeEffect : public AnimationEffect,
                        nsPresContext* aPresContext,
                        const ComputedStyle* aComputedValues,
                        RefPtr<ComputedStyle>& aBaseComputedValues);
+  const AnimationPropertySegment& GetSegmentForProgress(
+      const AnimationProperty& aProperty, double aProgress) const;
 
   Maybe<OwningAnimationTarget> mTarget;
 
