@@ -51,6 +51,15 @@ CompactFillEffect::CompactFillEffect(dom::KeyframeEffect& aOriginalEffect)
   mLinkedEffect = &aOriginalEffect;
 }
 
+void CompactFillEffect::UpdateFill(FillSnapshot&& aFill,
+                                   const ComputedStyle* aStyle) {
+  mFillSnapshot = std::move(aFill);
+
+  if (aStyle) {
+    UpdateProperties(aStyle);
+  }
+}
+
 nsTArray<AnimationProperty> CompactFillEffect::BuildProperties(
     const ComputedStyle* aComputedValues) {
   MOZ_ASSERT(aComputedValues);

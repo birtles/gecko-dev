@@ -25,6 +25,9 @@ class CompactFillEffect : public dom::KeyframeEffect {
 
   CompactFillEffect* AsCompactFillEffect() override { return this; }
 
+  // Recompute the effect's stored fill style.
+  void UpdateFill(FillSnapshot&& aFill, const ComputedStyle* aStyle);
+
  protected:
   nsTArray<AnimationProperty> BuildProperties(
       const ComputedStyle* aStyle) override;
