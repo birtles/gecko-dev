@@ -204,6 +204,7 @@ class KeyframeEffect : public AnimationEffect,
                     const ComputedStyle* aStyle);
 
   void NotifyAnimationCanceled() override;
+  KeyframeEffect* GetLinkedEffect() { return mLinkedEffect; }
   void SetLinkedEffect(KeyframeEffect* aLinkedEffect);
   FillSnapshot GetFillSnapshot() const;
 

@@ -337,6 +337,9 @@ class Animation : public DOMEventTargetHelper,
     return mOverrideAnimationIndex != kNoIndex ? mOverrideAnimationIndex
                                                : mAnimationIndex;
   }
+  void ShadowAnimationIndex(const Animation& aAnimation) {
+    mOverrideAnimationIndex = aAnimation.EffectiveAnimationIndex();
+  }
 
   /**
    * Returns the level at which the effect(s) associated with this Animation

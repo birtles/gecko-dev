@@ -49,6 +49,10 @@ CompactFillEffect::CompactFillEffect(dom::KeyframeEffect& aOriginalEffect)
   MOZ_ASSERT(!aOriginalEffect.AsCompactFillEffect(),
              "The original effect should not itself be a compact fill effect");
   mLinkedEffect = &aOriginalEffect;
+
+  RefPtr<ComputedStyle> computedStyle = GetTargetComputedStyle(Flush::None);
+  UpdateFill(aOriginalEffect.GetFillSnapshot(),
+             aOriginalEffect.GetCumulativeChangeHint(), computedStyle);
 }
 
 void CompactFillEffect::UpdateFill(FillSnapshot&& aFill,
