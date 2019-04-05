@@ -40,6 +40,7 @@ class nsIFrame;
 namespace mozilla {
 
 class AnimValuesStyleRule;
+class CompactFillEffect;
 enum class PseudoStyleType : uint8_t;
 class ErrorResult;
 struct AnimationRule;
@@ -522,6 +523,8 @@ class KeyframeEffect : public AnimationEffect,
   static const TimeDuration OverflowRegionRefreshInterval();
 
   void UpdateEffectSet(mozilla::EffectSet* aEffectSet = nullptr) const;
+
+  CompactFillEffect* GetCompactFillEffect();
 
   // Returns true if this effect has properties that might affect the overflow
   // region.

@@ -295,6 +295,8 @@ void KeyframeEffect::SetLinkedEffect(KeyframeEffect* aLinkedEffect) {
       "We don't expect to directly replace one linked effect with another");
 
   mLinkedEffect = aLinkedEffect;
+
+  UpdateTargetRegistration();
 }
 
 FillSnapshot KeyframeEffect::GetFillSnapshot() const {
@@ -941,7 +943,11 @@ void KeyframeEffect::UpdateTargetRegistration() {
   MOZ_ASSERT(isRelevant == IsCurrent() || IsInEffect(),
              "Out of date Animation::IsRelevant value");
 
-  if (isRelevant && !mInEffectSet) {
+  // If there is a compact representation of ourselves we should not register
+  // with the EffectSet or else our effect would be applied twice.
+  bool shouldBeRegistered = isRelevant && !GetCompactFillEffect();
+
+  if (shouldBeRegistered && !mInEffectSet) {
     EffectSet* effectSet = EffectSet::GetOrCreateEffectSet(
         mTarget->mElement, mTarget->mPseudoType);
     effectSet->AddEffect(*this);
@@ -950,7 +956,7 @@ void KeyframeEffect::UpdateTargetRegistration() {
     nsIFrame* frame = GetPrimaryFrame();
     EnumerateContinuationsOrIBSplitSiblings(
         frame, [](nsIFrame* aFrame) { aFrame->MarkNeedsDisplayItemRebuild(); });
-  } else if (!isRelevant && mInEffectSet) {
+  } else if (!shouldBeRegistered && mInEffectSet) {
     UnregisterTarget();
   }
 }
@@ -1931,6 +1937,10 @@ void KeyframeEffect::UpdateEffectSet(EffectSet* aEffectSet) const {
       aFrame->SetMayHaveTransformAnimation();
     });
   }
+}
+
+CompactFillEffect* KeyframeEffect::GetCompactFillEffect() {
+  return mLinkedEffect ? mLinkedEffect->AsCompactFillEffect() : nullptr;
 }
 
 KeyframeEffect::MatchForCompositor KeyframeEffect::IsMatchForCompositor(
