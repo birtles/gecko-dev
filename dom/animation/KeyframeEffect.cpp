@@ -284,6 +284,19 @@ static bool IsEffectiveProperty(const EffectSet& aEffects,
          !aEffects.PropertiesForAnimationsLevel().HasProperty(aProperty);
 }
 
+void KeyframeEffect::SetLinkedEffect(KeyframeEffect* aLinkedEffect) {
+  // The linked effect of a CompactFillEffect should be set in its ctor and
+  // then just fade away.
+  MOZ_ASSERT(!aLinkedEffect || !AsCompactFillEffect(),
+             "We don't expect to update the linked effect of a compact fill "
+             "effect except to clear it");
+  MOZ_ASSERT(
+      !mLinkedEffect || !aLinkedEffect,
+      "We don't expect to directly replace one linked effect with another");
+
+  mLinkedEffect = aLinkedEffect;
+}
+
 FillSnapshot KeyframeEffect::GetFillSnapshot() const {
   MOZ_ASSERT(
       mAnimation && mAnimation->PlayState() == AnimationPlayState::Finished,

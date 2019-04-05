@@ -27,7 +27,7 @@
 // RawServoDeclarationBlock and associated RefPtrTraits
 #include "mozilla/ServoBindingTypes.h"
 #include "mozilla/StyleAnimationValue.h"
-#include "mozilla/WeakPtr.h"  // for SupportsWeakPtr
+#include "mozilla/WeakPtr.h"
 #include "mozilla/dom/AnimationEffect.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/Element.h"
@@ -201,6 +201,8 @@ class KeyframeEffect : public AnimationEffect,
                     ErrorResult& aRv);
   void SetKeyframes(nsTArray<Keyframe>&& aKeyframes,
                     const ComputedStyle* aStyle);
+
+  void SetLinkedEffect(KeyframeEffect* aLinkedEffect);
   FillSnapshot GetFillSnapshot() const;
 
   // Returns true if the effect includes a property in |aPropertySet| regardless
@@ -457,6 +459,24 @@ class KeyframeEffect : public AnimationEffect,
   // our style context changes we know to update the cumulative change hint even
   // if our properties haven't changed.
   bool mNeedsStyleData = false;
+
+  // When a keyframe effect is filling indefinitely, it may be replaced by
+  // a compact representation of its fill value that can eventually be
+  // garbage-collected (at which point that compact representation can
+  // potentially be further compacted).
+  //
+  // The original KeyframeEffect object needs to maintain a reference to the
+  // compact representation so that if it is canceled or updated, it can update
+  // the corresponding compact form.
+  //
+  // The compact form too (which derives from this class) needs a reference to
+  // the original KeyframeEffect object so that if _it_ is canceled it can
+  // update the original object.
+  //
+  // This two-way connection is represented by the "linked effect" member.
+  // It is a weak reference since neither side needs to keep the other side
+  // alive, but simply needs to update it if it exists.
+  WeakPtr<KeyframeEffect> mLinkedEffect;
 
   // The non-animated values for properties in this effect that contain at
   // least one animation value that is composited with the underlying value

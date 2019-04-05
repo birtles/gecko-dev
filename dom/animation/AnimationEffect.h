@@ -19,14 +19,15 @@
 
 namespace mozilla {
 
+class CompactFillEffect;
 struct ElementPropertyTransition;
 
 namespace dom {
 
 class Animation;
-class KeyframeEffect;
 struct ComputedEffectTiming;
 class Document;
+class KeyframeEffect;
 
 class AnimationEffect : public nsISupports, public nsWrapperCache {
  public:
@@ -36,6 +37,7 @@ class AnimationEffect : public nsISupports, public nsWrapperCache {
   AnimationEffect(Document* aDocument, TimingParams&& aTiming);
 
   virtual KeyframeEffect* AsKeyframeEffect() { return nullptr; }
+  virtual CompactFillEffect* AsCompactFillEffect() { return nullptr; }
 
   virtual ElementPropertyTransition* AsTransition() { return nullptr; }
   virtual const ElementPropertyTransition* AsTransition() const {
@@ -43,6 +45,7 @@ class AnimationEffect : public nsISupports, public nsWrapperCache {
   }
 
   nsISupports* GetParentObject() const { return ToSupports(mDocument); }
+  Document* GetOwnerDocument() const { return mDocument; }
 
   bool IsCurrent() const;
   bool IsInEffect() const;

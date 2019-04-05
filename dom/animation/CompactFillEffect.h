@@ -13,17 +13,17 @@
 namespace mozilla {
 
 class ComputedStyle;
-struct OwningAnimationTarget;
 
 class CompactFillEffect : public dom::KeyframeEffect {
  protected:
   virtual ~CompactFillEffect() {}
 
  public:
-  CompactFillEffect(dom::Document* aDocument,
-                    const OwningAnimationTarget& aTarget);
+  explicit CompactFillEffect(dom::KeyframeEffect& aOriginalEffect);
 
   NS_DECL_ISUPPORTS_INHERITED
+
+  CompactFillEffect* AsCompactFillEffect() override { return this; }
 
  protected:
   nsTArray<AnimationProperty> BuildProperties(

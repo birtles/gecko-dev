@@ -6,6 +6,7 @@
 
 #include "CompactFillEffect.h"
 
+#include "mozilla/AnimationTarget.h"
 #include "mozilla/KeyframeEffectParams.h"
 #include "mozilla/TimingParams.h"
 #include "nsContentUtils.h"
@@ -18,6 +19,19 @@ NS_IMPL_RELEASE_INHERITED(CompactFillEffect, KeyframeEffect)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(CompactFillEffect)
 NS_INTERFACE_MAP_END_INHERITING(KeyframeEffect)
 
+static Maybe<OwningAnimationTarget> ToOwningAnimationTarget(
+    const Maybe<const NonOwningAnimationTarget>& aTarget) {
+  Maybe<OwningAnimationTarget> result;
+  if (!aTarget) {
+    return result;
+  }
+
+  const NonOwningAnimationTarget& target = aTarget.ref();
+  result = Some(OwningAnimationTarget{target.mElement, target.mPseudoType});
+
+  return result;
+}
+
 TimingParams FillTimingParams() {
   return TimingParams(TimeDuration::Forever(),  // duration
                       TimeDuration(),           // delay
@@ -28,10 +42,14 @@ TimingParams FillTimingParams() {
                       Nothing());  // timing function
 }
 
-CompactFillEffect::CompactFillEffect(dom::Document* aDocument,
-                                     const OwningAnimationTarget& aTarget)
-    : dom::KeyframeEffect(aDocument, Some(aTarget), FillTimingParams(),
-                          KeyframeEffectParams()) {}
+CompactFillEffect::CompactFillEffect(dom::KeyframeEffect& aOriginalEffect)
+    : dom::KeyframeEffect(aOriginalEffect.GetOwnerDocument(),
+                          ToOwningAnimationTarget(aOriginalEffect.GetTarget()),
+                          FillTimingParams(), KeyframeEffectParams()) {
+  MOZ_ASSERT(!aOriginalEffect.AsCompactFillEffect(),
+             "The original effect should not itself be a compact fill effect");
+  mLinkedEffect = &aOriginalEffect;
+}
 
 nsTArray<AnimationProperty> CompactFillEffect::BuildProperties(
     const ComputedStyle* aComputedValues) {
