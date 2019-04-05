@@ -75,15 +75,25 @@ struct AnimationProperty {
 
   Maybe<AnimationPerformanceWarning> mPerformanceWarning;
 
+  // When compositing filling animations we sometimes need to preserve the
+  // current that the animation is filling at. We can't just use ComputedTiming
+  // for this because a single FillEffect can ultimately represent the results
+  // of multiple filling KeyframeEffects so instead we annotate the
+  // AnimationProperty with the appropriate current iteration.
+  Maybe<uint64_t> mCurrentIteration;
+
   InfallibleTArray<AnimationPropertySegment> mSegments;
 
   // The copy constructor/assignment doesn't copy mIsRunningOnCompositor and
   // mPerformanceWarning.
   AnimationProperty() = default;
   AnimationProperty(const AnimationProperty& aOther)
-      : mProperty(aOther.mProperty), mSegments(aOther.mSegments) {}
+      : mProperty(aOther.mProperty),
+        mCurrentIteration(aOther.mCurrentIteration),
+        mSegments(aOther.mSegments) {}
   AnimationProperty& operator=(const AnimationProperty& aOther) {
     mProperty = aOther.mProperty;
+    mCurrentIteration = aOther.mCurrentIteration;
     mSegments = aOther.mSegments;
     return *this;
   }
@@ -95,7 +105,9 @@ struct AnimationProperty {
   // the mIsRunningOnCompositor will not have been set on the new objects so
   // we ignore this member to avoid generating spurious change records.
   bool operator==(const AnimationProperty& aOther) const {
-    return mProperty == aOther.mProperty && mSegments == aOther.mSegments;
+    return mProperty == aOther.mProperty &&
+           mCurrentIteration == aOther.mCurrentIteration &&
+           mSegments == aOther.mSegments;
   }
   bool operator!=(const AnimationProperty& aOther) const {
     return !(*this == aOther);

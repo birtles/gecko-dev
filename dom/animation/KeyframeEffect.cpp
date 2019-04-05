@@ -76,6 +76,11 @@ void DumpAnimationProperties(
              NS_ConvertUTF16toUTF8(fromValue).get(),
              NS_ConvertUTF16toUTF8(toValue).get());
     }
+    if (p.mCurrentIteration) {
+      printf("  current iteration: %lu\n", *p.mCurrentIteration);
+    } else {
+      printf("  current iteration: <none>\n");
+    }
   }
 }
 #endif
@@ -628,11 +633,20 @@ void KeyframeEffect::ComposeStyleRule(
     const AnimationProperty& aProperty,
     const AnimationPropertySegment& aSegment,
     const ComputedTiming& aComputedTiming) {
+  // Apply any per-property iteration composite behavior.
+  ComputedTiming computedTiming = aComputedTiming;
+  IterationCompositeOperation iterationComposite =
+      mEffectOptions.mIterationComposite;
+  if (aProperty.mCurrentIteration) {
+    computedTiming.mCurrentIteration = *aProperty.mCurrentIteration;
+    iterationComposite = IterationCompositeOperation::Accumulate;
+  }
+
   auto* opaqueTable =
       reinterpret_cast<RawServoAnimationValueTable*>(&mBaseValues);
   Servo_AnimationCompose(&aAnimationValues, opaqueTable, aProperty.mProperty,
                          &aSegment, &aProperty.mSegments.LastElement(),
-                         &aComputedTiming, mEffectOptions.mIterationComposite);
+                         &aComputedTiming, iterationComposite);
 }
 
 void KeyframeEffect::ComposeStyle(RawServoAnimationValueMap& aComposeResult,

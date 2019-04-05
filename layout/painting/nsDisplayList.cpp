@@ -605,6 +605,16 @@ static void AddAnimationForProperty(nsIFrame* aFrame,
 
   TransformReferenceBox refBox(aFrame);
 
+  // For filling animations, individual properties can override the iteration
+  // composite mode and current iteration by providing a property-specific
+  // current iteration.
+
+  if (aProperty.mCurrentIteration) {
+    animation->iterationComposite() =
+        static_cast<uint8_t>(dom::IterationCompositeOperation::Accumulate);
+    animation->iterationStart() = *aProperty.mCurrentIteration;
+  }
+
   // If the animation is additive or accumulates, we need to pass its base value
   // to the compositor.
 

@@ -118,8 +118,7 @@ nsTArray<AnimationProperty> CompactFillEffect::BuildProperties(
       lastSegment.mToComposite = propertySnapshot.mLastValue->mComposite;
 
       property.mSegments.AppendElement(std::move(lastSegment));
-
-      // TODO: Store the current iteration
+      property.mCurrentIteration = Some(propertySnapshot.mCurrentIteration);
     }
 
     result.AppendElement(std::move(property));

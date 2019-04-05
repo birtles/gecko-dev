@@ -1,0 +1,76 @@
+<!doctype html>
+<head>
+<meta charset=utf-8>
+<title>Test for styles for animations that are filling on the compositor</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../testcommon.js"></script>
+<style>
+.compositor {
+  /* Element needs geometry to be eligible for layerization */
+  width: 100px;
+  height: 100px;
+  background-color: green;
+}
+</style>
+</head>
+<body>
+<div id="log"></div>
+<script>
+"use strict";
+
+promise_test(async t => {
+  const div = addDiv(t, { class: 'compositor' });
+
+  // When an animation finishes, it will normally be removed from the
+  // compositor. However, it is contributing to a stack of animations where
+  // some part of the animation has not finished, it will be sent to the
+  // compositor.
+  //
+  // As a result, we need two animations: one to fill forwards that we can test
+  // and one to keep running so that the first one gets sent to the compositor
+  // as well.
+
+  const animationA = div.animate(
+    { transform: ['translate(0px)', 'translate(100px)'] },
+    {
+      duration: 1000,
+      iterations: 3,
+      fill: 'forwards',
+      iterationComposite: 'accumulate',
+    }
+  );
+  animationA.finish();
+
+  const animationB = div.animate(
+    { transform: ['translate(100px)', 'translate(100px)'] },
+    {
+      duration: 1000,
+      iterations: Math.Infinity,
+      fill: 'forwards',
+      composite: 'add',
+    }
+  );
+
+  // Call getAnimations to ensure we create any FillAnimations.
+  div.getAnimations();
+
+  await Promise.all([animationA.ready, animationB.ready]);
+  await waitForNextFrame();
+
+  // By this point we should have both animations on the compositor.
+  //
+  // animationA should be finished, and having accumulated twice it should
+  // be producing a result of translate(300px).
+  //
+  // animationB should be continuing to run and adding 'translate(100px)'
+  // such that the final result is 'translate(400px)'.
+
+  const transform = SpecialPowers.DOMWindowUtils.getOMTAStyle(div, 'transform');
+  assert_equals(transform, 'matrix(1, 0, 0, 1, 400, 0)');
+
+}, 'A filling animation sent to the compositor should reproduce the current'
+   + ' iteration');
+
+</script>
+</body>
