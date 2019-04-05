@@ -7,6 +7,7 @@
 #ifndef mozilla_KeyframeUtils_h
 #define mozilla_KeyframeUtils_h
 
+#include "mozilla/ComputedTimingFunction.h"  // For ComputedTimingFunction::BeforeFlag
 #include "mozilla/KeyframeEffectParams.h"  // For CompositeOperation
 #include "nsCSSPropertyID.h"
 #include "nsTArrayForwardDeclare.h"  // For nsTArray
@@ -14,11 +15,11 @@
 
 struct JSContext;
 class JSObject;
-class ComputedStyle;
 struct RawServoDeclarationBlock;
 
 namespace mozilla {
 struct AnimationProperty;
+class ComputedStyle;
 enum class PseudoStyleType : uint8_t;
 class ErrorResult;
 struct Keyframe;
@@ -99,6 +100,22 @@ class KeyframeUtils {
    * @return true if |aProperty| is animatable.
    */
   static bool IsAnimatableProperty(nsCSSPropertyID aProperty);
+
+  /**
+   * Given a progress within an iteration, and a target segment which includes
+   * the given progress, calculates the corresponding offset within the
+   * segment's interval, including applying the segment's timing function.
+   *
+   * @param aSegment    The segment within which we should calculate the offset.
+   * @param aProgress   The offset within a single iteration of the
+   *                    corresponding effect.
+   * @param aBeforeFlag The value of the before flag to use when evaluating the
+   *                    segment's timing function.
+   * @return The corresponding offset within |aSegment|.
+   */
+  static double GetPositionInSegment(
+      const AnimationPropertySegment& aSegment, double aProgress,
+      ComputedTimingFunction::BeforeFlag aBeforeFlag);
 };
 
 }  // namespace mozilla

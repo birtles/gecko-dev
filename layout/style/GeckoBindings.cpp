@@ -52,6 +52,7 @@
 #include "mozilla/EventStates.h"
 #include "mozilla/FontPropertyTypes.h"
 #include "mozilla/Keyframe.h"
+#include "mozilla/KeyframeUtils.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/ServoElementSnapshot.h"
@@ -662,17 +663,7 @@ double Gecko_GetProgressFromComputedTiming(const ComputedTiming* aTiming) {
 double Gecko_GetPositionInSegment(
     const AnimationPropertySegment* aSegment, double aProgress,
     ComputedTimingFunction::BeforeFlag aBeforeFlag) {
-  MOZ_ASSERT(aSegment->mFromKey < aSegment->mToKey,
-             "The segment from key should be less than to key");
-
-  double positionInSegment = (aProgress - aSegment->mFromKey) /
-                             // To avoid floating precision inaccuracies, make
-                             // sure we calculate both the numerator and
-                             // denominator using double precision.
-                             (double(aSegment->mToKey) - aSegment->mFromKey);
-
-  return ComputedTimingFunction::GetPortion(aSegment->mTimingFunction,
-                                            positionInSegment, aBeforeFlag);
+  return KeyframeUtils::GetPositionInSegment(*aSegment, aProgress, aBeforeFlag);
 }
 
 const RawServoAnimationValue* Gecko_AnimationGetBaseStyle(

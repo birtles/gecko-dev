@@ -325,6 +325,22 @@ bool KeyframeUtils::IsAnimatableProperty(nsCSSPropertyID aProperty) {
   return Servo_Property_IsAnimatable(aProperty);
 }
 
+/* static */ double KeyframeUtils::GetPositionInSegment(
+    const AnimationPropertySegment& aSegment, double aProgress,
+    ComputedTimingFunction::BeforeFlag aBeforeFlag) {
+  MOZ_ASSERT(aSegment.mFromKey < aSegment.mToKey,
+             "The segment from key should be less than to key");
+
+  double positionInSegment = (aProgress - aSegment.mFromKey) /
+                             // To avoid floating precision inaccuracies, make
+                             // sure we calculate both the numerator and
+                             // denominator using double precision.
+                             (double(aSegment.mToKey) - aSegment.mFromKey);
+
+  return ComputedTimingFunction::GetPortion(aSegment.mTimingFunction,
+                                            positionInSegment, aBeforeFlag);
+}
+
 // ------------------------------------------------------------------
 //
 // Internal helpers
