@@ -793,6 +793,11 @@ void Animation::CancelNoUpdate() {
   if (mTimeline) {
     mTimeline->RemoveAnimation(this);
   }
+
+  if (mEffect) {
+    mEffect->NotifyAnimationCanceled();
+  }
+
   MaybeQueueCancelEvent(activeTime);
 }
 
@@ -1485,6 +1490,12 @@ void Animation::DoFinishNotificationImmediately(MicroTaskRunnable* aAsync) {
 
 void Animation::QueuePlaybackEvent(const nsAString& aName,
                                    TimeStamp&& aScheduledEventTime) {
+  // If this is the Animation for a compacted fill effect we should not
+  // dispatch events. Only the linked effects do that.
+  if (mEffect && mEffect->AsCompactFillEffect()) {
+    return;
+  }
+
   // Use document for timing.
   // https://drafts.csswg.org/web-animations-1/#document-for-timing
   Document* doc = GetTimelineDocument();

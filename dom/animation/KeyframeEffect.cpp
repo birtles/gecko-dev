@@ -291,6 +291,28 @@ static bool IsEffectiveProperty(const EffectSet& aEffects,
          !aEffects.PropertiesForAnimationsLevel().HasProperty(aProperty);
 }
 
+void KeyframeEffect::NotifyAnimationCanceled() {
+  // If this KeyframeEffect is represented by a CompactFillEffect then we need
+  // to make sure it is canceled too. Conversely, if the CompactFillEffect is
+  // canceled somehow we need to make sure the original KeyframeEffect is also
+  // canceled.
+  if (!mLinkedEffect) {
+    return;
+  }
+
+  Animation* linkedAnimation = mLinkedEffect->GetAnimation();
+
+  // To ensure we don't end up calling back and forth indefinitely between
+  // a CompactFillEffect and its original effect we break the link here.
+  mLinkedEffect = nullptr;
+
+  if (!linkedAnimation) {
+    return;
+  }
+
+  linkedAnimation->Cancel();
+}
+
 void KeyframeEffect::SetLinkedEffect(KeyframeEffect* aLinkedEffect) {
   // The linked effect of a CompactFillEffect should be set in its ctor and
   // then just fade away.

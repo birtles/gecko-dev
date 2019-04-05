@@ -81,6 +81,8 @@ class AnimationEffect : public nsISupports, public nsWrapperCache {
   virtual void SetAnimation(Animation* aAnimation) = 0;
   Animation* GetAnimation() const { return mAnimation; };
 
+  virtual void NotifyAnimationCanceled() = 0;
+
   /**
    * Returns true if this effect animates one of the properties we consider
    * geometric properties, e.g. properties such as 'width' or 'margin-left'

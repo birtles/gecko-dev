@@ -203,6 +203,7 @@ class KeyframeEffect : public AnimationEffect,
   void SetKeyframes(nsTArray<Keyframe>&& aKeyframes,
                     const ComputedStyle* aStyle);
 
+  void NotifyAnimationCanceled() override;
   void SetLinkedEffect(KeyframeEffect* aLinkedEffect);
   FillSnapshot GetFillSnapshot() const;
 
