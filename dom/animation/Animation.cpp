@@ -906,8 +906,15 @@ bool Animation::HasLowerCompositeOrderThan(const Animation& aOther) const {
   MOZ_ASSERT(mAnimationIndex != aOther.mAnimationIndex,
              "Animation indices should be unique");
 
-  // 3. Finally, generic animations sort by their position in the global
-  // animation array.
+  // 3. For all other animations use the "effective animation index" so that
+  // linked animations sort according to the effects they represent.
+  if (EffectiveAnimationIndex() != aOther.EffectiveAnimationIndex()) {
+    return EffectiveAnimationIndex() < aOther.EffectiveAnimationIndex();
+  }
+
+  // 4. If the effective animation indices are equal then we must be comparing
+  // a linked animation with its source. In that case we should sort by the
+  // original indices.
   return mAnimationIndex < aOther.mAnimationIndex;
 }
 

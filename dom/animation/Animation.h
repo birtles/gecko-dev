@@ -333,6 +333,10 @@ class Animation : public DOMEventTargetHelper,
    * Returns true if this Animation has a lower composite order than aOther.
    */
   bool HasLowerCompositeOrderThan(const Animation& aOther) const;
+  uint64_t EffectiveAnimationIndex() const {
+    return mOverrideAnimationIndex != kNoIndex ? mOverrideAnimationIndex
+                                               : mAnimationIndex;
+  }
 
   /**
    * Returns the level at which the effect(s) associated with this Animation
@@ -544,6 +548,7 @@ class Animation : public DOMEventTargetHelper,
   RefPtr<Promise> mFinished;
 
   static uint64_t sNextAnimationIndex;
+  static const uint64_t kNoIndex = UINT64_MAX;
 
   // The relative position of this animation within the global animation list.
   //
@@ -551,6 +556,11 @@ class Animation : public DOMEventTargetHelper,
   // this member to implement their own brand of sorting. As a result, it is
   // possible for two different objects to have the same index.
   uint64_t mAnimationIndex;
+
+  // A secondary animation index that, if set, is used in preference to
+  // mAnimationIndex. This is used to allow animations that shadow or replace
+  // others to assume the sort order of their source animations.
+  uint64_t mOverrideAnimationIndex = kNoIndex;
 
   // While ordering Animation objects for event dispatch, the index of the
   // target node in its parent may be cached in mCachedChildIndex.
