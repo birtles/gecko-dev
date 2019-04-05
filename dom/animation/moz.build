@@ -51,6 +51,7 @@ UNIFIED_SOURCES += [
     'DocumentTimeline.cpp',
     'EffectCompositor.cpp',
     'EffectSet.cpp',
+    'FillSnapshot.cpp',
     'KeyframeEffect.cpp',
     'KeyframeUtils.cpp',
     'PendingAnimationTracker.cpp',

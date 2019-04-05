@@ -56,6 +56,10 @@ struct FillPropertySnapshot {
 
 using FillSnapshot = nsTArray<FillPropertySnapshot>;
 
+#ifdef DEBUG
+void DumpFillSnapshot(const FillSnapshot& aSnapshot);
+#endif
+
 }  // namespace mozilla
 
 #endif  // mozilla_FillSnapshot_h
