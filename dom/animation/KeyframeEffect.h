@@ -268,7 +268,13 @@ class KeyframeEffect : public AnimationEffect,
 
   // Update |mProperties| by recalculating from |mKeyframes| using
   // |aComputedStyle| to resolve specified values.
-  void UpdateProperties(const ComputedStyle* aComputedValues);
+  //
+  // If |aChangeHintUpdate| is specified and set to ChangeHintUpdate::Skip we
+  // will avoid performing the (quite expensive) change hint calculation.
+  enum class ChangeHintUpdate { Update, Skip };
+  void UpdateProperties(
+      const ComputedStyle* aComputedValues,
+      ChangeHintUpdate aChangeHintUpdate = ChangeHintUpdate::Update);
 
   // Update various bits of state related to running ComposeStyle().
   // We need to update this outside ComposeStyle() because we should avoid
@@ -317,8 +323,9 @@ class KeyframeEffect : public AnimationEffect,
                              const AnimationPerformanceWarning& aWarning);
 
   // Cumulative change hint on each segment for each property.
-  // This is used for deciding the animation is paint-only.
+  // This is used for deciding if the animation is paint-only.
   void CalculateCumulativeChangeHint(const ComputedStyle* aStyle);
+  nsChangeHint GetCumulativeChangeHint() const { return mCumulativeChangeHint; }
 
   // Returns true if all of animation properties' change hints
   // can ignore painting if the animation is not visible.
@@ -486,9 +493,9 @@ class KeyframeEffect : public AnimationEffect,
       nsRefPtrHashtable<nsUint32HashKey, RawServoAnimationValue>;
   BaseValuesHashmap mBaseValues;
 
- private:
   nsChangeHint mCumulativeChangeHint;
 
+ private:
   void ComposeStyleRule(RawServoAnimationValueMap& aAnimationValues,
                         const AnimationProperty& aProperty,
                         const AnimationPropertySegment& aSegment,

@@ -52,11 +52,13 @@ CompactFillEffect::CompactFillEffect(dom::KeyframeEffect& aOriginalEffect)
 }
 
 void CompactFillEffect::UpdateFill(FillSnapshot&& aFill,
+                                   nsChangeHint aCumulativeChangeHint,
                                    const ComputedStyle* aStyle) {
   mFillSnapshot = std::move(aFill);
+  mCumulativeChangeHint = aCumulativeChangeHint;
 
   if (aStyle) {
-    UpdateProperties(aStyle);
+    UpdateProperties(aStyle, ChangeHintUpdate::Skip);
   }
 }
 

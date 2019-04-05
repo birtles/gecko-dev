@@ -512,7 +512,7 @@ bool SpecifiedKeyframeArraysAreEqual(const nsTArray<Keyframe>& aA,
 }
 #endif
 
-void KeyframeEffect::UpdateProperties(const ComputedStyle* aStyle) {
+void KeyframeEffect::UpdateProperties(const ComputedStyle* aStyle, ChangeHintUpdate aChangeHintUpdate) {
   MOZ_ASSERT(aStyle);
 
   nsTArray<AnimationProperty> properties = BuildProperties(aStyle);
@@ -554,7 +554,9 @@ void KeyframeEffect::UpdateProperties(const ComputedStyle* aStyle) {
         runningOnCompositorProperties.HasProperty(property.mProperty);
   }
 
-  CalculateCumulativeChangeHint(aStyle);
+  if (aChangeHintUpdate != ChangeHintUpdate::Skip) {
+    CalculateCumulativeChangeHint(aStyle);
+  }
 
   MarkCascadeNeedsUpdate();
 
@@ -1956,7 +1958,7 @@ void KeyframeEffect::UpdateCompactFillEffect(const ComputedStyle* aStyle) {
     return;
   }
 
-  compactFillEffect->UpdateFill(GetFillSnapshot(), aStyle);
+  compactFillEffect->UpdateFill(GetFillSnapshot(), mCumulativeChangeHint, aStyle);
 }
 
 KeyframeEffect::MatchForCompositor KeyframeEffect::IsMatchForCompositor(
