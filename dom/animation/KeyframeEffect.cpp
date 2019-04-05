@@ -55,6 +55,31 @@ void AnimationProperty::SetPerformanceWarning(
   }
 }
 
+#ifdef DEBUG
+void DumpAnimationProperties(
+    nsTArray<AnimationProperty>& aAnimationProperties) {
+  for (auto& p : aAnimationProperties) {
+    printf("%s\n", nsCString(nsCSSProps::GetStringValue(p.mProperty)).get());
+    for (auto& s : p.mSegments) {
+      nsString fromValue, toValue;
+      if (!s.mFromValue.IsNull()) {
+        s.mFromValue.SerializeSpecifiedValue(p.mProperty, fromValue);
+      } else {
+        fromValue = NS_LITERAL_STRING("<null>");
+      }
+      if (!s.mToValue.IsNull()) {
+        s.mToValue.SerializeSpecifiedValue(p.mProperty, toValue);
+      } else {
+        toValue = NS_LITERAL_STRING("<null>");
+      }
+      printf("  %f..%f: %s..%s\n", s.mFromKey, s.mToKey,
+             NS_ConvertUTF16toUTF8(fromValue).get(),
+             NS_ConvertUTF16toUTF8(toValue).get());
+    }
+  }
+}
+#endif
+
 bool PropertyValuePair::operator==(const PropertyValuePair& aOther) const {
   if (mProperty != aOther.mProperty) {
     return false;
@@ -962,23 +987,6 @@ already_AddRefed<ComputedStyle> KeyframeEffect::GetTargetComputedStyle(
              : nsComputedDOMStyle::GetComputedStyleNoFlush(mTarget->mElement,
                                                            pseudo);
 }
-
-#ifdef DEBUG
-void DumpAnimationProperties(
-    nsTArray<AnimationProperty>& aAnimationProperties) {
-  for (auto& p : aAnimationProperties) {
-    printf("%s\n", nsCString(nsCSSProps::GetStringValue(p.mProperty)).get());
-    for (auto& s : p.mSegments) {
-      nsString fromValue, toValue;
-      s.mFromValue.SerializeSpecifiedValue(p.mProperty, fromValue);
-      s.mToValue.SerializeSpecifiedValue(p.mProperty, toValue);
-      printf("  %f..%f: %s..%s\n", s.mFromKey, s.mToKey,
-             NS_ConvertUTF16toUTF8(fromValue).get(),
-             NS_ConvertUTF16toUTF8(toValue).get());
-    }
-  }
-}
-#endif
 
 /* static */
 already_AddRefed<KeyframeEffect> KeyframeEffect::Constructor(

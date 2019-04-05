@@ -105,6 +105,10 @@ struct AnimationProperty {
                              const Element* aElement);
 };
 
+#ifdef DEBUG
+void DumpAnimationProperties(nsTArray<AnimationProperty>& aAnimationProperties);
+#endif
+
 struct ElementPropertyTransition;
 
 namespace dom {
