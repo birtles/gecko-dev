@@ -3546,10 +3546,23 @@ void Element::GetAnimationsUnsorted(Element* aElement,
   }
 
   for (KeyframeEffect* effect : *effects) {
-    MOZ_ASSERT(effect && effect->GetAnimation(),
+    KeyframeEffect* effectToUse = effect;
+
+    // If this is a compacted effect, return the original animation/effect.
+    // This is a temporary measure until we introduce FillAnimations.
+    if (effect->AsCompactFillEffect()) {
+      KeyframeEffect* originalEffect = effect->GetLinkedEffect();
+      // TODO: Ensure that until we introduce FillAnimations, CompactFillEffects
+      // keep their original effects alive so that we can return it here.
+      if (originalEffect) {
+        effectToUse = originalEffect;
+      }
+    }
+
+    MOZ_ASSERT(effectToUse && effectToUse->GetAnimation(),
                "Only effects associated with an animation should be "
                "added to an element's effect set");
-    Animation* animation = effect->GetAnimation();
+    Animation* animation = effectToUse->GetAnimation();
 
     MOZ_ASSERT(animation->IsRelevant(),
                "Only relevant animations should be added to an element's "
