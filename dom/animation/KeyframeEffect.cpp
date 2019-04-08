@@ -15,6 +15,7 @@
 #include "mozilla/AnimationUtils.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/CompactFillEffect.h"
+#include "mozilla/CompactAnimationUtils.h"
 #include "mozilla/ComputedStyleInlines.h"
 #include "mozilla/EffectSet.h"
 #include "mozilla/FloatingPoint.h"  // For IsFinite
@@ -1130,13 +1131,23 @@ void KeyframeEffect::GetTarget(
 
 void KeyframeEffect::SetTarget(
     const Nullable<ElementOrCSSPseudoElement>& aTarget) {
+  MOZ_ASSERT(!AsCompactFillEffect(),
+             "We shouldn't be updating the target of a compact fill effect");
+
   Maybe<OwningAnimationTarget> newTarget = ConvertTarget(aTarget);
   if (mTarget == newTarget) {
     // Assign the same target, skip it.
     return;
   }
 
+  bool isCompacted = GetCompactFillEffect();
+
   if (mTarget) {
+    if (isCompacted) {
+      MOZ_ASSERT(mAnimation, "We must have an animation if we're compacted");
+      CompactAnimationUtils::RestoreAnimation(*mAnimation);
+    }
+
     UnregisterTarget();
     ResetIsRunningOnCompositor();
 
@@ -1161,6 +1172,10 @@ void KeyframeEffect::SetTarget(
 
     nsAutoAnimationMutationBatch mb(mTarget->mElement->OwnerDoc());
     if (mAnimation) {
+      if (isCompacted) {
+        CompactAnimationUtils::CompactAnimation(*mAnimation);
+      }
+
       nsNodeUtils::AnimationAdded(mAnimation);
       mAnimation->ReschedulePendingTasks();
     }
