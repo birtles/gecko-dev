@@ -23,7 +23,8 @@ bool IsMarkupAnimation(T* aAnimation) {
   return aAnimation && aAnimation->IsTiedToMarkup();
 }
 
-static bool ShouldCompact(const Animation& aAnimation) {
+/* static */ bool CompactAnimationUtils::ShouldCompact(
+    const Animation& aAnimation) {
   // We never compact CSS animations or CSS transitions since they are managed
   // by CSS.
   if (IsMarkupAnimation(aAnimation.AsCSSAnimation()) ||

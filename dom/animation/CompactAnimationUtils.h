@@ -15,6 +15,7 @@ class Animation;
 
 class CompactAnimationUtils {
  public:
+  static bool ShouldCompact(const dom::Animation& aAnimation);
   static void CompactAnimation(dom::Animation& aAnimation);
   static void RestoreAnimation(dom::Animation& aAnimation);
 };

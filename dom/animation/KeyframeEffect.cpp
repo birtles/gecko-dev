@@ -191,6 +191,18 @@ void KeyframeEffect::NotifySpecifiedTimingUpdated() {
 }
 
 void KeyframeEffect::NotifyAnimationTimingUpdated() {
+  // Before updating our target registration, check if we should be compacted or
+  // expanded.
+  if (mAnimation) {
+    bool isCompacted = GetCompactFillEffect();
+    bool shouldBeCompacted = CompactAnimationUtils::ShouldCompact(*mAnimation);
+    if (shouldBeCompacted && !isCompacted) {
+      CompactAnimationUtils::CompactAnimation(*mAnimation);
+    } else if (!shouldBeCompacted && isCompacted) {
+      CompactAnimationUtils::RestoreAnimation(*mAnimation);
+    }
+  }
+
   UpdateTargetRegistration();
 
   // If the effect is not relevant it will be removed from the target
