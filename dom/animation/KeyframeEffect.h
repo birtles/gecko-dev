@@ -197,6 +197,7 @@ class KeyframeEffect : public AnimationEffect,
   void NotifySpecifiedTimingUpdated();
   void NotifyAnimationTimingUpdated();
   void RequestRestyle(EffectCompositor::RestyleType aRestyleType);
+  void BeforeSetAnimation(Animation* aAnimation) override;
   void SetAnimation(Animation* aAnimation) override;
   void SetKeyframes(JSContext* aContext, JS::Handle<JSObject*> aKeyframes,
                     ErrorResult& aRv);

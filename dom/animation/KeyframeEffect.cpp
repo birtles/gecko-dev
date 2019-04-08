@@ -1828,13 +1828,27 @@ void KeyframeEffect::CalculateCumulativeChangeHint(
   }
 }
 
-void KeyframeEffect::SetAnimation(Animation* aAnimation) {
+void KeyframeEffect::BeforeSetAnimation(Animation* aAnimation) {
   if (mAnimation == aAnimation) {
     return;
   }
 
   // Restyle for the old animation.
   RequestRestyle(EffectCompositor::RestyleType::Layer);
+
+  // If we are being assigned to a different animation we may no longer be
+  // eligible for compacting any more (and if we are, we will be re-compacted
+  // by the Animation).
+  if (GetCompactFillEffect()) {
+    MOZ_ASSERT(mAnimation, "We must have an animation if we're compacted");
+    CompactAnimationUtils::RestoreAnimation(*mAnimation);
+  }
+}
+
+void KeyframeEffect::SetAnimation(Animation* aAnimation) {
+  if (mAnimation == aAnimation) {
+    return;
+  }
 
   mAnimation = aAnimation;
 

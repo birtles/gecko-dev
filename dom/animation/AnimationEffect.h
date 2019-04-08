@@ -78,6 +78,7 @@ class AnimationEffect : public nsISupports, public nsWrapperCache {
   // calculated from the timeline time.
   ComputedTiming GetComputedTiming(const TimingParams* aTiming = nullptr) const;
 
+  virtual void BeforeSetAnimation(Animation* aAnimation) = 0;
   virtual void SetAnimation(Animation* aAnimation) = 0;
   Animation* GetAnimation() const { return mAnimation; };
 

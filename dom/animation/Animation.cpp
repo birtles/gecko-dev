@@ -136,6 +136,7 @@ void Animation::SetEffectNoUpdate(AnimationEffect* aEffect) {
 
     // Break links with the old effect and then drop it.
     RefPtr<AnimationEffect> oldEffect = mEffect;
+    oldEffect->BeforeSetAnimation(nullptr);
     mEffect = nullptr;
     oldEffect->SetAnimation(nullptr);
 
@@ -155,8 +156,9 @@ void Animation::SetEffectNoUpdate(AnimationEffect* aEffect) {
     // mIsRelevant of this animation, and then notify mutation observer if
     // needed by calling Animation::UpdateRelevance(), so we don't need to
     // call it again.
+    newEffect->BeforeSetAnimation(this);
     mEffect = newEffect;
-    mEffect->SetAnimation(this);
+    newEffect->SetAnimation(this);
 
     // Notify possible add or change.
     // If the target is different, the change notification will be ignored by
