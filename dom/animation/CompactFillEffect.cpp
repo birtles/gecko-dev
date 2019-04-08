@@ -13,6 +13,13 @@
 
 namespace mozilla {
 
+NS_IMPL_CYCLE_COLLECTION_INHERITED(CompactFillEffect, KeyframeEffect,
+                                   mOriginalEffect)
+
+NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(CompactFillEffect,
+                                               KeyframeEffect)
+NS_IMPL_CYCLE_COLLECTION_TRACE_END
+
 NS_IMPL_ADDREF_INHERITED(CompactFillEffect, KeyframeEffect)
 NS_IMPL_RELEASE_INHERITED(CompactFillEffect, KeyframeEffect)
 
@@ -49,10 +56,21 @@ CompactFillEffect::CompactFillEffect(dom::KeyframeEffect& aOriginalEffect)
   MOZ_ASSERT(!aOriginalEffect.AsCompactFillEffect(),
              "The original effect should not itself be a compact fill effect");
   mLinkedEffect = &aOriginalEffect;
+  mOriginalEffect = &aOriginalEffect;
 
   RefPtr<ComputedStyle> computedStyle = GetTargetComputedStyle(Flush::None);
   UpdateFill(aOriginalEffect.GetFillSnapshot(),
              aOriginalEffect.GetCumulativeChangeHint(), computedStyle);
+}
+
+void CompactFillEffect::SetLinkedEffect(KeyframeEffect* aLinkedEffect) {
+  MOZ_ASSERT(
+      !aLinkedEffect,
+      "We only expect this to be called when the compacted effect is restored");
+
+  KeyframeEffect::SetLinkedEffect(aLinkedEffect);
+
+  mOriginalEffect = nullptr;
 }
 
 void CompactFillEffect::UpdateFill(FillSnapshot&& aFill,

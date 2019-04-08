@@ -22,8 +22,11 @@ class CompactFillEffect : public dom::KeyframeEffect {
   explicit CompactFillEffect(dom::KeyframeEffect& aOriginalEffect);
 
   NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(CompactFillEffect,
+                                                         KeyframeEffect)
 
   CompactFillEffect* AsCompactFillEffect() override { return this; }
+  void SetLinkedEffect(KeyframeEffect* aLinkedEffect) override;
 
   // Recompute the effect's stored fill style.
   void UpdateFill(FillSnapshot&& aFill, nsChangeHint aCumulativeChangeHint,
@@ -34,6 +37,10 @@ class CompactFillEffect : public dom::KeyframeEffect {
       const ComputedStyle* aStyle) override;
 
   FillSnapshot mFillSnapshot;
+
+  // Temporary measure to keep the original effect alive so we can return it
+  // from GetAnimations until we introduce FillAnimations for this purpose.
+  RefPtr<KeyframeEffect> mOriginalEffect;
 };
 
 }  // namespace mozilla

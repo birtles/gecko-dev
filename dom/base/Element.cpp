@@ -3552,11 +3552,8 @@ void Element::GetAnimationsUnsorted(Element* aElement,
     // This is a temporary measure until we introduce FillAnimations.
     if (effect->AsCompactFillEffect()) {
       KeyframeEffect* originalEffect = effect->GetLinkedEffect();
-      // TODO: Ensure that until we introduce FillAnimations, CompactFillEffects
-      // keep their original effects alive so that we can return it here.
-      if (originalEffect) {
-        effectToUse = originalEffect;
-      }
+      MOZ_ASSERT(originalEffect, "We should be preserving the original effect");
+      effectToUse = originalEffect;
     }
 
     MOZ_ASSERT(effectToUse && effectToUse->GetAnimation(),
