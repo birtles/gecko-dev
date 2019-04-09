@@ -58,7 +58,8 @@ class Animation : public DOMEventTargetHelper,
         mFinishedAtLastComposeStyle(false),
         mIsRelevant(false),
         mFinishedIsResolved(false),
-        mSyncWithGeometricAnimations(false) {}
+        mSyncWithGeometricAnimations(false),
+        mIsReadOnly(false) {}
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(Animation, DOMEventTargetHelper)
@@ -89,17 +90,18 @@ class Animation : public DOMEventTargetHelper,
   void SetId(const nsAString& aId);
 
   AnimationEffect* GetEffect() const { return mEffect; }
-  void SetEffect(AnimationEffect* aEffect);
+  void SetEffect(AnimationEffect* aEffect, ErrorResult& aRv);
   void SetEffectNoUpdate(AnimationEffect* aEffect);
 
   AnimationTimeline* GetTimeline() const { return mTimeline; }
-  void SetTimeline(AnimationTimeline* aTimeline);
+  void SetTimeline(AnimationTimeline* aTimeline, ErrorResult& aRv);
   void SetTimelineNoUpdate(AnimationTimeline* aTimeline);
 
   Nullable<TimeDuration> GetStartTime() const { return mStartTime; }
   Nullable<double> GetStartTimeAsDouble() const;
   void SetStartTime(const Nullable<TimeDuration>& aNewStartTime);
-  void SetStartTimeAsDouble(const Nullable<double>& aStartTime);
+  void SetStartTimeAsDouble(const Nullable<double>& aStartTime,
+                            ErrorResult& aRv);
 
   // This is deliberately _not_ called GetCurrentTime since that would clash
   // with a macro defined in winbase.h
@@ -112,7 +114,7 @@ class Animation : public DOMEventTargetHelper,
                               ErrorResult& aRv);
 
   double PlaybackRate() const { return mPlaybackRate; }
-  void SetPlaybackRate(double aPlaybackRate);
+  void SetPlaybackRate(double aPlaybackRate, ErrorResult& aRv);
 
   AnimationPlayState PlayState() const;
   virtual AnimationPlayState PlayStateFromJS() const { return PlayState(); }
@@ -144,9 +146,10 @@ class Animation : public DOMEventTargetHelper,
    */
   void PauseFromJS(ErrorResult& aRv) { Pause(aRv); }
 
-  void UpdatePlaybackRate(double aPlaybackRate);
+  void UpdatePlaybackRate(double aPlaybackRate, ErrorResult& aRv);
   void Reverse(ErrorResult& aRv);
 
+  bool IsReadOnly() const { return mIsReadOnly; }
   bool IsRunningOnCompositor() const;
 
   virtual void Tick();
@@ -593,6 +596,9 @@ class Animation : public DOMEventTargetHelper,
   // geometric animations and hence we should run any transform animations on
   // the main thread.
   bool mSyncWithGeometricAnimations;
+
+  // Indicates mutators other than Cancel() should throw.
+  bool mIsReadOnly;
 
   RefPtr<MicroTaskRunnable> mFinishNotificationTask;
 

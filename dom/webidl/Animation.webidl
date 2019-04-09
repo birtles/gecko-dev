@@ -16,15 +16,16 @@ enum AnimationPlayState { "idle", "running", "paused", "finished" };
               optional AnimationTimeline? timeline)]
 interface Animation : EventTarget {
   attribute DOMString id;
-  [Func="Document::IsWebAnimationsEnabled", Pure]
+  [Func="Document::IsWebAnimationsEnabled", SetterThrows, Pure]
   attribute AnimationEffect? effect;
-  [Func="Document::AreWebAnimationsTimelinesEnabled"]
+  [Func="Document::AreWebAnimationsTimelinesEnabled", SetterThrows]
   attribute AnimationTimeline? timeline;
-  [BinaryName="startTimeAsDouble"]
+  [SetterThrows, BinaryName="startTimeAsDouble"]
   attribute double? startTime;
   [SetterThrows, BinaryName="currentTimeAsDouble"]
   attribute double? currentTime;
 
+  [SetterThrows]
            attribute double             playbackRate;
   [BinaryName="playStateFromJS"]
   readonly attribute AnimationPlayState playState;
@@ -43,6 +44,7 @@ interface Animation : EventTarget {
   void play ();
   [Throws, BinaryName="pauseFromJS"]
   void pause ();
+  [Throws]
   void updatePlaybackRate (double playbackRate);
   [Throws]
   void reverse ();

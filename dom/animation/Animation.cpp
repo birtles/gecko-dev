@@ -107,17 +107,32 @@ void Animation::SetId(const nsAString& aId) {
   if (mId == aId) {
     return;
   }
+
   mId = aId;
   nsNodeUtils::AnimationChanged(this);
 }
 
-void Animation::SetEffect(AnimationEffect* aEffect) {
+void Animation::SetEffect(AnimationEffect* aEffect, ErrorResult& aRv) {
+  if (mIsReadOnly) {
+    aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    return;
+  }
+
+  if (aEffect && aEffect->GetAnimation() &&
+      aEffect->GetAnimation()->IsReadOnly()) {
+    aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    return;
+  }
+
   SetEffectNoUpdate(aEffect);
   PostUpdate();
 }
 
 // https://drafts.csswg.org/web-animations/#setting-the-target-effect
 void Animation::SetEffectNoUpdate(AnimationEffect* aEffect) {
+  MOZ_ASSERT(!aEffect || !aEffect->GetAnimation() ||
+                 !aEffect->GetAnimation()->IsReadOnly(),
+             "Effect to set should not be attached to a read-only animation");
   RefPtr<Animation> kungFuDeathGrip(this);
 
   if (mEffect == aEffect) {
@@ -149,7 +164,11 @@ void Animation::SetEffectNoUpdate(AnimationEffect* aEffect) {
     RefPtr<AnimationEffect> newEffect = aEffect;
     Animation* prevAnim = aEffect->GetAnimation();
     if (prevAnim) {
-      prevAnim->SetEffect(nullptr);
+      ErrorResult rv;
+      prevAnim->SetEffect(nullptr, rv);
+      MOZ_ASSERT(!rv.Failed(),
+                 "We should not be calling SetEffect on an effect"
+                 " attached to a read-only animation");
     }
 
     // Create links with the new effect. SetAnimation(this) will also update
@@ -173,7 +192,12 @@ void Animation::SetEffectNoUpdate(AnimationEffect* aEffect) {
   UpdateTiming(SeekFlag::NoSeek, SyncNotifyFlag::Async);
 }
 
-void Animation::SetTimeline(AnimationTimeline* aTimeline) {
+void Animation::SetTimeline(AnimationTimeline* aTimeline, ErrorResult& aRv) {
+  if (mIsReadOnly) {
+    aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    return;
+  }
+
   SetTimelineNoUpdate(aTimeline);
   PostUpdate();
 }
@@ -308,7 +332,12 @@ void Animation::SetCurrentTime(const TimeDuration& aSeekTime) {
 }
 
 // https://drafts.csswg.org/web-animations/#set-the-playback-rate
-void Animation::SetPlaybackRate(double aPlaybackRate) {
+void Animation::SetPlaybackRate(double aPlaybackRate, ErrorResult& aRv) {
+  if (mIsReadOnly) {
+    aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    return;
+  }
+
   mPendingPlaybackRate.reset();
 
   if (aPlaybackRate == mPlaybackRate) {
@@ -339,7 +368,12 @@ void Animation::SetPlaybackRate(double aPlaybackRate) {
 }
 
 // https://drafts.csswg.org/web-animations/#seamlessly-update-the-playback-rate
-void Animation::UpdatePlaybackRate(double aPlaybackRate) {
+void Animation::UpdatePlaybackRate(double aPlaybackRate, ErrorResult& aRv) {
+  if (mIsReadOnly) {
+    aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    return;
+  }
+
   if (mPendingPlaybackRate && mPendingPlaybackRate.value() == aPlaybackRate) {
     return;
   }
@@ -476,6 +510,11 @@ void Animation::Cancel() {
 
 // https://drafts.csswg.org/web-animations/#finish-an-animation
 void Animation::Finish(ErrorResult& aRv) {
+  if (mIsReadOnly) {
+    aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    return;
+  }
+
   double effectivePlaybackRate = CurrentOrPendingPlaybackRate();
 
   if (effectivePlaybackRate == 0 ||
@@ -531,6 +570,11 @@ void Animation::Finish(ErrorResult& aRv) {
 }
 
 void Animation::Play(ErrorResult& aRv, LimitBehavior aLimitBehavior) {
+  if (mIsReadOnly) {
+    aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    return;
+  }
+
   PlayNoUpdate(aRv, aLimitBehavior);
   PostUpdate();
 }
@@ -538,6 +582,11 @@ void Animation::Play(ErrorResult& aRv, LimitBehavior aLimitBehavior) {
 // https://drafts.csswg.org/web-animations/#reverse-an-animation
 void Animation::Reverse(ErrorResult& aRv) {
   if (!mTimeline || mTimeline->GetCurrentTimeAsDuration().IsNull()) {
+    if (mIsReadOnly) {
+      aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+      return;
+    }
+
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
@@ -574,7 +623,13 @@ Nullable<double> Animation::GetStartTimeAsDouble() const {
   return AnimationUtils::TimeDurationToDouble(mStartTime);
 }
 
-void Animation::SetStartTimeAsDouble(const Nullable<double>& aStartTime) {
+void Animation::SetStartTimeAsDouble(const Nullable<double>& aStartTime,
+                                     ErrorResult& aRv) {
+  if (mIsReadOnly) {
+    aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    return;
+  }
+
   return SetStartTime(AnimationUtils::DoubleToTimeDuration(aStartTime));
 }
 
@@ -584,6 +639,11 @@ Nullable<double> Animation::GetCurrentTimeAsDouble() const {
 
 void Animation::SetCurrentTimeAsDouble(const Nullable<double>& aCurrentTime,
                                        ErrorResult& aRv) {
+  if (mIsReadOnly) {
+    aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    return;
+  }
+
   if (aCurrentTime.IsNull()) {
     if (!GetCurrentTimeAsDuration().IsNull()) {
       aRv.Throw(NS_ERROR_DOM_TYPE_ERR);
@@ -1104,6 +1164,11 @@ void Animation::PlayNoUpdate(ErrorResult& aRv, LimitBehavior aLimitBehavior) {
 
 // https://drafts.csswg.org/web-animations/#pause-an-animation
 void Animation::Pause(ErrorResult& aRv) {
+  if (mIsReadOnly) {
+    aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    return;
+  }
+
   if (IsPausedOrPausing()) {
     return;
   }
