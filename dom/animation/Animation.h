@@ -42,6 +42,7 @@ class AsyncFinishNotification;
 class CSSAnimation;
 class CSSTransition;
 class Document;
+class FillAnimation;
 
 class Animation : public DOMEventTargetHelper,
                   public LinkedListElement<Animation> {
@@ -72,6 +73,8 @@ class Animation : public DOMEventTargetHelper,
   virtual const CSSAnimation* AsCSSAnimation() const { return nullptr; }
   virtual CSSTransition* AsCSSTransition() { return nullptr; }
   virtual const CSSTransition* AsCSSTransition() const { return nullptr; }
+  virtual FillAnimation* AsFillAnimation() { return nullptr; }
+  virtual const FillAnimation* AsFillAnimation() const { return nullptr; }
 
   /**
    * Flag to pass to Play to indicate whether or not it should automatically

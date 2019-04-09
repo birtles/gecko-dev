@@ -366,6 +366,8 @@ var interfaceNamesInGlobalScope =
 // IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "FileSystemFileEntry", insecureContext: true},
 // IMPORTANT: Do not change this list without review from a DOM peer!
+    {name: "FillAnimation", insecureContext: true, release: false},
+// IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "FocusEvent", insecureContext: true},
 // IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "FormData", insecureContext: true},
