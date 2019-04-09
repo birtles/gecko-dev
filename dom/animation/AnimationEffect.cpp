@@ -319,6 +319,11 @@ void AnimationEffect::GetComputedTimingAsDict(
 
 void AnimationEffect::UpdateTiming(const OptionalEffectTiming& aTiming,
                                    ErrorResult& aRv) {
+  if (mAnimation && mAnimation->IsReadOnly()) {
+    aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    return;
+  }
+
   TimingParams timing =
       TimingParams::MergeOptionalEffectTiming(mTiming, aTiming, mDocument, aRv);
   if (aRv.Failed()) {

@@ -180,7 +180,8 @@ class KeyframeEffect : public AnimationEffect,
   // updating style, we should pass the ComputedStyle into this method and use
   // that to update the properties rather than calling
   // GetComputedStyle.
-  void SetTarget(const Nullable<ElementOrCSSPseudoElement>& aTarget);
+  void SetTarget(const Nullable<ElementOrCSSPseudoElement>& aTarget,
+                 ErrorResult& aRv);
 
   void GetKeyframes(JSContext*& aCx, nsTArray<JSObject*>& aResult,
                     ErrorResult& aRv) const;
@@ -189,10 +190,10 @@ class KeyframeEffect : public AnimationEffect,
 
   IterationCompositeOperation IterationComposite() const;
   void SetIterationComposite(
-      const IterationCompositeOperation& aIterationComposite);
+      const IterationCompositeOperation& aIterationComposite, ErrorResult& aRv);
 
   CompositeOperation Composite() const;
-  void SetComposite(const CompositeOperation& aComposite);
+  void SetComposite(const CompositeOperation& aComposite, ErrorResult& aRv);
 
   void NotifySpecifiedTimingUpdated();
   void NotifyAnimationTimingUpdated();

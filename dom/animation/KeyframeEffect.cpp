@@ -133,7 +133,12 @@ IterationCompositeOperation KeyframeEffect::IterationComposite() const {
 }
 
 void KeyframeEffect::SetIterationComposite(
-    const IterationCompositeOperation& aIterationComposite) {
+    const IterationCompositeOperation& aIterationComposite, ErrorResult& aRv) {
+  if (mAnimation && mAnimation->IsReadOnly()) {
+    aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    return;
+  }
+
   if (mEffectOptions.mIterationComposite == aIterationComposite) {
     return;
   }
@@ -154,7 +159,13 @@ CompositeOperation KeyframeEffect::Composite() const {
   return mEffectOptions.mComposite;
 }
 
-void KeyframeEffect::SetComposite(const CompositeOperation& aComposite) {
+void KeyframeEffect::SetComposite(const CompositeOperation& aComposite,
+                                  ErrorResult& aRv) {
+  if (mAnimation && mAnimation->IsReadOnly()) {
+    aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    return;
+  }
+
   if (mEffectOptions.mComposite == aComposite) {
     return;
   }
@@ -266,8 +277,14 @@ static bool KeyframesEqualIgnoringComputedOffsets(
 void KeyframeEffect::SetKeyframes(JSContext* aContext,
                                   JS::Handle<JSObject*> aKeyframes,
                                   ErrorResult& aRv) {
+  if (mAnimation && mAnimation->IsReadOnly()) {
+    aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    return;
+  }
+
   nsTArray<Keyframe> keyframes = KeyframeUtils::GetKeyframesFromObject(
       aContext, mDocument, aKeyframes, aRv);
+
   if (aRv.Failed()) {
     return;
   }
@@ -1142,9 +1159,14 @@ void KeyframeEffect::GetTarget(
 }
 
 void KeyframeEffect::SetTarget(
-    const Nullable<ElementOrCSSPseudoElement>& aTarget) {
+    const Nullable<ElementOrCSSPseudoElement>& aTarget, ErrorResult& aRv) {
   MOZ_ASSERT(!AsCompactFillEffect(),
              "We shouldn't be updating the target of a compact fill effect");
+
+  if (mAnimation && mAnimation->IsReadOnly()) {
+    aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    return;
+  }
 
   Maybe<OwningAnimationTarget> newTarget = ConvertTarget(aTarget);
   if (mTarget == newTarget) {

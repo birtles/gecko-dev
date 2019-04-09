@@ -29,10 +29,11 @@ dictionary KeyframeEffectOptions : EffectTiming {
               optional (unrestricted double or KeyframeEffectOptions) options),
  Constructor (KeyframeEffect source)]
 interface KeyframeEffect : AnimationEffect {
+  [SetterThrows]
   attribute (Element or CSSPseudoElement)?  target;
-  [Pref="dom.animations-api.compositing.enabled"]
+  [Pref="dom.animations-api.compositing.enabled", SetterThrows]
   attribute IterationCompositeOperation     iterationComposite;
-  [Pref="dom.animations-api.compositing.enabled"]
+  [Pref="dom.animations-api.compositing.enabled", SetterThrows]
   attribute CompositeOperation              composite;
   [Throws] sequence<object> getKeyframes ();
   [Throws] void             setKeyframes (object? keyframes);
