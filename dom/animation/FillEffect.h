@@ -27,6 +27,7 @@ class FillEffect : public dom::KeyframeEffect {
                                                          KeyframeEffect)
 
   void Init(const nsTArray<CompactFillEffect*>& aSourceEffects);
+  void NotifyAnimationCanceled() override;
 
  private:
   // The effects from which we take our values.

@@ -63,6 +63,23 @@ void CompactFillEffect::SetLinkedEffect(KeyframeEffect* aLinkedEffect) {
   mOriginalEffect = nullptr;
 }
 
+void CompactFillEffect::NotifyAnimationCanceled() {
+  nsTArray<WeakPtr<KeyframeEffect>> referencingEffects(
+      std::move(mReferencingEffects));
+  for (KeyframeEffect* effect : referencingEffects) {
+    if (!effect) {
+      continue;
+    }
+
+    Animation* animation = effect->GetAnimation();
+    if (animation) {
+      animation->Cancel();
+    }
+  }
+
+  KeyframeEffect::NotifyAnimationCanceled();
+}
+
 void CompactFillEffect::AddReferencingEffect(KeyframeEffect& aKeyframeEffect) {
   mReferencingEffects.AppendElement(&aKeyframeEffect);
 }

@@ -7,6 +7,7 @@
 #include "FillEffect.h"
 
 #include "mozilla/CompactFillEffect.h"
+#include "mozilla/dom/Animation.h"
 #include "mozilla/FillTimingParams.h"
 #include "mozilla/KeyframeEffectParams.h"
 
@@ -37,6 +38,18 @@ void FillEffect::Init(const nsTArray<CompactFillEffect*>& aSourceEffects) {
     effect->AddReferencingEffect(*this);
     mSourceEffects.AppendElement(effect);
   }
+}
+
+void FillEffect::NotifyAnimationCanceled() {
+  nsTArray<RefPtr<KeyframeEffect>> sourceEffects(std::move(mSourceEffects));
+  for (KeyframeEffect* effect : sourceEffects) {
+    dom::Animation* animation = effect->GetAnimation();
+    if (animation) {
+      animation->Cancel();
+    }
+  }
+
+  KeyframeEffect::NotifyAnimationCanceled();
 }
 
 }  // namespace mozilla

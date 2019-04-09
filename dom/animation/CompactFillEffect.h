@@ -28,6 +28,8 @@ class CompactFillEffect : public dom::KeyframeEffect {
 
   CompactFillEffect* AsCompactFillEffect() override { return this; }
   void SetLinkedEffect(KeyframeEffect* aLinkedEffect) override;
+  void NotifyAnimationCanceled() override;
+
   void AddReferencingEffect(KeyframeEffect& aKeyframeEffect);
 
   // Recompute the effect's stored fill style.
