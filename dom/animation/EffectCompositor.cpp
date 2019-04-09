@@ -394,9 +394,10 @@ class EffectCompositeOrderComparator {
 };
 }  // namespace
 
-bool EffectCompositor::GetServoAnimationRule(
+bool EffectCompositor::GetPartialServoAnimationRule(
     const dom::Element* aElement, PseudoStyleType aPseudoType,
-    CascadeLevel aCascadeLevel, RawServoAnimationValueMap* aAnimationValues) {
+    const KeyframeEffect* aLastEffect, CascadeLevel aCascadeLevel,
+    RawServoAnimationValueMap* aAnimationValues) {
   MOZ_ASSERT(aAnimationValues);
   MOZ_ASSERT(mPresContext && mPresContext->IsDynamic(),
              "Should not be in print preview");
@@ -426,6 +427,9 @@ bool EffectCompositor::GetServoAnimationRule(
           : effectSet->PropertiesForAnimationsLevel();
   for (KeyframeEffect* effect : sortedEffectList) {
     effect->GetAnimation()->ComposeStyle(*aAnimationValues, propertiesToSkip);
+    if (effect == aLastEffect) {
+      break;
+    }
   }
 
   MOZ_ASSERT(effectSet == EffectSet::GetEffectSet(aElement, aPseudoType),

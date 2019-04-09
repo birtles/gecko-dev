@@ -38,6 +38,7 @@ struct NonOwningAnimationTarget;
 namespace dom {
 class Animation;
 class Element;
+class KeyframeEffect;
 }  // namespace dom
 
 class EffectCompositor {
@@ -116,15 +117,26 @@ class EffectCompositor {
                               dom::Element* aElement,
                               PseudoStyleType aPseudoType);
 
-  // Get animation rule for stylo. This is an equivalent of GetAnimationRule
-  // and will be called from servo side.
+  // Compose animation styles (called from Servo).
+  //
   // The animation rule is stored in |RawServoAnimationValueMap|.
   // We need to be careful while doing any modification because it may cause
   // some thread-safe issues.
   bool GetServoAnimationRule(const dom::Element* aElement,
                              PseudoStyleType aPseudoType,
                              CascadeLevel aCascadeLevel,
-                             RawServoAnimationValueMap* aAnimationValues);
+                             RawServoAnimationValueMap* aAnimationValues) {
+    return GetPartialServoAnimationRule(aElement, aPseudoType, nullptr,
+                                        aCascadeLevel, aAnimationValues);
+  }
+
+  // A variant of GetServoAnimationRule that only composes the stack up to
+  // |aLastEffect|. This is used to calculate the computed values returned by
+  // getKeyframes() for a FillEffect.
+  bool GetPartialServoAnimationRule(
+      const dom::Element* aElement, PseudoStyleType aPseudoType,
+      const dom::KeyframeEffect* aLastEffect, CascadeLevel aCascadeLevel,
+      RawServoAnimationValueMap* aAnimationValues);
 
   bool HasPendingStyleUpdates() const;
 
