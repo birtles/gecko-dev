@@ -30,6 +30,9 @@ class FillEffect : public dom::KeyframeEffect {
   void NotifyAnimationCanceled() override;
   void NotifyAnimationInvalidated() override;
 
+  void GetProperties(nsTArray<dom::AnimationPropertyDetails>& aProperties,
+                     ErrorResult& aRv) const override;
+
  private:
   // The effects from which we take our values.
   //

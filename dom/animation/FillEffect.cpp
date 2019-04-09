@@ -63,4 +63,15 @@ void FillEffect::NotifyAnimationInvalidated() {
   KeyframeEffect::NotifyAnimationInvalidated();
 }
 
+void FillEffect::GetProperties(
+    nsTArray<dom::AnimationPropertyDetails>& aProperties,
+    ErrorResult& aRv) const {
+  for (const KeyframeEffect* effect : mSourceEffects) {
+    effect->GetProperties(aProperties, aRv);
+    if (aRv.Failed()) {
+      return;
+    }
+  }
+}
+
 }  // namespace mozilla

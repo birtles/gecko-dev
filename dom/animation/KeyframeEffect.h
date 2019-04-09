@@ -185,8 +185,8 @@ class KeyframeEffect : public AnimationEffect,
 
   void GetKeyframes(JSContext*& aCx, nsTArray<JSObject*>& aResult,
                     ErrorResult& aRv) const;
-  void GetProperties(nsTArray<AnimationPropertyDetails>& aProperties,
-                     ErrorResult& aRv) const;
+  virtual void GetProperties(nsTArray<AnimationPropertyDetails>& aProperties,
+                             ErrorResult& aRv) const;
 
   IterationCompositeOperation IterationComposite() const;
   void SetIterationComposite(
