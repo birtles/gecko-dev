@@ -504,7 +504,7 @@ Promise* Animation::GetFinished(ErrorResult& aRv) {
 }
 
 void Animation::Cancel() {
-  CancelNoUpdate();
+  CancelNoUpdate(CancelMode::Cancel);
   PostUpdate();
 }
 
@@ -831,7 +831,7 @@ void Animation::SilentlySetCurrentTime(const TimeDuration& aSeekTime) {
 }
 
 // https://drafts.csswg.org/web-animations/#cancel-an-animation
-void Animation::CancelNoUpdate() {
+void Animation::CancelNoUpdate(CancelMode aCancelMode) {
   if (PlayState() != AnimationPlayState::Idle) {
     ResetPendingTasks();
 
@@ -857,7 +857,11 @@ void Animation::CancelNoUpdate() {
   }
 
   if (mEffect) {
-    mEffect->NotifyAnimationCanceled();
+    if (aCancelMode == CancelMode::Cancel) {
+      mEffect->NotifyAnimationCanceled();
+    } else {
+      mEffect->NotifyAnimationInvalidated();
+    }
   }
 
   MaybeQueueCancelEvent(activeTime);

@@ -52,4 +52,15 @@ void FillEffect::NotifyAnimationCanceled() {
   KeyframeEffect::NotifyAnimationCanceled();
 }
 
+void FillEffect::NotifyAnimationInvalidated() {
+  mSourceEffects.Clear();
+
+  // We don't call Cancel on the source effect's animations since the whole
+  // point of this method is to allow a FillAnimation to disappear when one of
+  // its source effects has been canceled _without_ also causing all the other
+  // source effects to be canceled at the same time.
+
+  KeyframeEffect::NotifyAnimationInvalidated();
+}
+
 }  // namespace mozilla

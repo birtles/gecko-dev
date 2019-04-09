@@ -83,6 +83,7 @@ class AnimationEffect : public nsISupports, public nsWrapperCache {
   Animation* GetAnimation() const { return mAnimation; };
 
   virtual void NotifyAnimationCanceled() = 0;
+  virtual void NotifyAnimationInvalidated() {}
 
   /**
    * Returns true if this effect animates one of the properties we consider

@@ -132,7 +132,7 @@ class Animation : public DOMEventTargetHelper,
   IMPL_EVENT_HANDLER(cancel);
 
   void Cancel();
-  virtual void CancelFromStyle() { CancelNoUpdate(); }
+  virtual void CancelFromStyle() { CancelNoUpdate(CancelMode::Cancel); }
 
   void Finish(ErrorResult& aRv);
 
@@ -409,8 +409,10 @@ class Animation : public DOMEventTargetHelper,
   int32_t& CachedChildIndexRef() { return mCachedChildIndex; }
 
  protected:
+  enum class CancelMode { Cancel, Invalidate };
+
   void SilentlySetCurrentTime(const TimeDuration& aNewCurrentTime);
-  void CancelNoUpdate();
+  void CancelNoUpdate(CancelMode aCancelMode);
   void PlayNoUpdate(ErrorResult& aRv, LimitBehavior aLimitBehavior);
   void ResumeAt(const TimeDuration& aReadyTime);
   void PauseAt(const TimeDuration& aReadyTime);

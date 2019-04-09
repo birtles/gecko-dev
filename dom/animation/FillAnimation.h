@@ -31,6 +31,10 @@ class FillAnimation : public Animation {
 
   FillAnimation* AsFillAnimation() override { return this; }
   const FillAnimation* AsFillAnimation() const override { return this; }
+
+  // Cancels the FillAnimation but in such a way that it doesn't cancel all the
+  // CompactFillEffects it wraps.
+  void Invalidate() { CancelNoUpdate(CancelMode::Invalidate); }
 };
 
 }  // namespace dom

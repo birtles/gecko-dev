@@ -7,6 +7,7 @@
 #include "CompactFillEffect.h"
 
 #include "mozilla/AnimationTarget.h"
+#include "mozilla/dom/FillAnimation.h"
 #include "mozilla/FillTimingParams.h"
 #include "mozilla/KeyframeEffectParams.h"
 #include "nsContentUtils.h"
@@ -73,7 +74,9 @@ void CompactFillEffect::NotifyAnimationCanceled() {
 
     Animation* animation = effect->GetAnimation();
     if (animation) {
-      animation->Cancel();
+      MOZ_ASSERT(animation->AsFillAnimation(),
+                 "Referencing effects should belong to FillAnimations");
+      animation->AsFillAnimation()->Invalidate();
     }
   }
 
