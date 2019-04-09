@@ -832,7 +832,9 @@ void Animation::SilentlySetCurrentTime(const TimeDuration& aSeekTime) {
 
 // https://drafts.csswg.org/web-animations/#cancel-an-animation
 void Animation::CancelNoUpdate(CancelMode aCancelMode) {
-  if (PlayState() != AnimationPlayState::Idle) {
+  bool wasIdle = PlayState() == AnimationPlayState::Idle;
+
+  if (!wasIdle) {
     ResetPendingTasks();
 
     if (mFinished) {
@@ -849,6 +851,28 @@ void Animation::CancelNoUpdate(CancelMode aCancelMode) {
 
   mHoldTime.SetNull();
   mStartTime.SetNull();
+
+  // If an animation is already idle, the only step we need to do in this method
+  // is (maybe) clear the start time. (The spec also says we should clear the
+  // hold time but if the hold time is set, we can't possibly be idle.)
+  //
+  // The other steps below are generally harmless even if we call them
+  // redundantly. However, in some cases involving FillAnimations, we can end up
+  // calling this method recursively through the call to NotifyAnimationCanceled
+  // below.
+  //
+  // In particular, a FillAnimation may cancel its source effects which, in
+  // turn, will cancel any referencing animations including the original
+  // FillAnimation.
+  //
+  // That's generally ok since we are careful to drop any pointers to other
+  // effects first so that we avoid infinite recursion. However, it still
+  // still seems wasteful to cancel recursively and could lead to bugs in the
+  // future if we're not careful about considering that possibility so, just to
+  // be safe, we bail out here.
+  if (wasIdle) {
+    return;
+  }
 
   UpdateTiming(SeekFlag::NoSeek, SyncNotifyFlag::Async);
 
