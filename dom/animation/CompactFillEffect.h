@@ -9,6 +9,7 @@
 
 #include "mozilla/dom/KeyframeEffect.h"
 #include "mozilla/FillSnapshot.h"
+#include "nsTArray.h"
 
 namespace mozilla {
 
@@ -27,6 +28,7 @@ class CompactFillEffect : public dom::KeyframeEffect {
 
   CompactFillEffect* AsCompactFillEffect() override { return this; }
   void SetLinkedEffect(KeyframeEffect* aLinkedEffect) override;
+  void AddReferencingEffect(KeyframeEffect& aKeyframeEffect);
 
   // Recompute the effect's stored fill style.
   void UpdateFill(FillSnapshot&& aFill, nsChangeHint aCumulativeChangeHint,
@@ -41,6 +43,25 @@ class CompactFillEffect : public dom::KeyframeEffect {
   // Temporary measure to keep the original effect alive so we can return it
   // from GetAnimations until we introduce FillAnimations for this purpose.
   RefPtr<KeyframeEffect> mOriginalEffect;
+
+  // Any KeyframeEffect-like objects that currently reference this effect.
+  //
+  // For indefinitely-filling animations returned from GetAnimations, we
+  // return KeyframeEffect objects (implemented as FillEffects, but not
+  // exposed as such to JS) that represent one or more CompactFillEffects.
+  //
+  // We need to track such references for two reasons:
+  //
+  // 1.  We won't coalesce this effect with other CompactFillEffects while such
+  //     references still exist (since otherwise FillEffects would need
+  //     a means to reference a subset of a CompactFillEffect).
+  //
+  // 2.  If we are canceled (via our |mLinkedEffect| for example) we need to
+  //     cancel any such referencing effects too.
+  //
+  // However, we have no need to keep such objects alive. In fact, we hope
+  // they disappear so we can be coalesced with adjacent CompactFillEffects.
+  nsTArray<WeakPtr<KeyframeEffect>> mReferencingEffects;
 };
 
 }  // namespace mozilla

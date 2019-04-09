@@ -6,6 +6,7 @@
 
 #include "FillEffect.h"
 
+#include "mozilla/CompactFillEffect.h"
 #include "mozilla/FillTimingParams.h"
 #include "mozilla/KeyframeEffectParams.h"
 
@@ -14,6 +15,11 @@ namespace mozilla {
 NS_IMPL_ADDREF_INHERITED(FillEffect, KeyframeEffect)
 NS_IMPL_RELEASE_INHERITED(FillEffect, KeyframeEffect)
 
+NS_IMPL_CYCLE_COLLECTION_INHERITED(FillEffect, KeyframeEffect, mSourceEffects)
+
+NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(FillEffect, KeyframeEffect)
+NS_IMPL_CYCLE_COLLECTION_TRACE_END
+
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(FillEffect)
 NS_INTERFACE_MAP_END_INHERITING(KeyframeEffect)
 
@@ -21,5 +27,16 @@ FillEffect::FillEffect(dom::Document* aDocument,
                        const OwningAnimationTarget& aTarget)
     : dom::KeyframeEffect(aDocument, Some(aTarget), FillTimingParams(),
                           KeyframeEffectParams()) {}
+
+void FillEffect::Init(const nsTArray<CompactFillEffect*>& aSourceEffects) {
+  MOZ_ASSERT(mSourceEffects.IsEmpty(),
+             "FillEffect should not be initialized twice");
+
+  for (CompactFillEffect* effect : aSourceEffects) {
+    MOZ_ASSERT(effect, "Should not pass null pointers to Init");
+    effect->AddReferencingEffect(*this);
+    mSourceEffects.AppendElement(effect);
+  }
+}
 
 }  // namespace mozilla

@@ -8,8 +8,12 @@
 #define mozilla_FillEffect_h
 
 #include "mozilla/dom/KeyframeEffect.h"
+#include "mozilla/RefPtr.h"
+#include "nsTArray.h"
 
 namespace mozilla {
+
+class CompactFillEffect;
 
 class FillEffect : public dom::KeyframeEffect {
  protected:
@@ -19,6 +23,17 @@ class FillEffect : public dom::KeyframeEffect {
   FillEffect(dom::Document* aDocument, const OwningAnimationTarget& aTarget);
 
   NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(FillEffect,
+                                                         KeyframeEffect)
+
+  void Init(const nsTArray<CompactFillEffect*>& aSourceEffects);
+
+ private:
+  // The effects from which we take our values.
+  //
+  // These are also the effects we need to cancel if we ourselves are
+  // canceled.
+  nsTArray<RefPtr<dom::KeyframeEffect>> mSourceEffects;
 };
 
 }  // namespace mozilla

@@ -63,6 +63,10 @@ void CompactFillEffect::SetLinkedEffect(KeyframeEffect* aLinkedEffect) {
   mOriginalEffect = nullptr;
 }
 
+void CompactFillEffect::AddReferencingEffect(KeyframeEffect& aKeyframeEffect) {
+  mReferencingEffects.AppendElement(&aKeyframeEffect);
+}
+
 void CompactFillEffect::UpdateFill(FillSnapshot&& aFill,
                                    nsChangeHint aCumulativeChangeHint,
                                    const ComputedStyle* aStyle) {
