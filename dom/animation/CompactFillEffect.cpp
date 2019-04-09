@@ -7,8 +7,8 @@
 #include "CompactFillEffect.h"
 
 #include "mozilla/AnimationTarget.h"
+#include "mozilla/FillTimingParams.h"
 #include "mozilla/KeyframeEffectParams.h"
-#include "mozilla/TimingParams.h"
 #include "nsContentUtils.h"
 
 namespace mozilla {
@@ -37,16 +37,6 @@ static Maybe<OwningAnimationTarget> ToOwningAnimationTarget(
   result = Some(OwningAnimationTarget{target.mElement, target.mPseudoType});
 
   return result;
-}
-
-TimingParams FillTimingParams() {
-  return TimingParams(TimeDuration::Forever(),  // duration
-                      TimeDuration(),           // delay
-                      TimeDuration(),           // end-delay
-                      1.0f,                     // iterations
-                      0.0f,                     // iteration start
-                      dom::PlaybackDirection::Normal, dom::FillMode::Both,
-                      Nothing());  // timing function
 }
 
 CompactFillEffect::CompactFillEffect(dom::KeyframeEffect& aOriginalEffect)
