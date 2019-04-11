@@ -11,7 +11,7 @@
 
 #[cfg(feature = "gecko")] use crate::gecko_bindings::structs::RawServoAnimationValueMap;
 #[cfg(feature = "gecko")] use crate::gecko_bindings::structs::nsCSSPropertyID;
-#[cfg(feature = "gecko")] use crate::gecko_bindings::sugar::ownership::{HasFFI, HasSimpleFFI};
+#[cfg(feature = "gecko")] use crate::gecko_bindings::sugar::ownership::{HasFFI, HasBoxFFI, HasSimpleFFI};
 use itertools::{EitherOrBoth, Itertools};
 use crate::properties::{CSSWideKeyword, PropertyDeclaration};
 use crate::properties::longhands;
@@ -196,6 +196,8 @@ unsafe impl HasFFI for AnimationValueMap {
 }
 #[cfg(feature = "gecko")]
 unsafe impl HasSimpleFFI for AnimationValueMap {}
+#[cfg(feature = "gecko")]
+unsafe impl HasBoxFFI for AnimationValueMap {}
 
 /// An enum to represent a single computed value belonging to an animated
 /// property in order to be interpolated with another one. When interpolating,
