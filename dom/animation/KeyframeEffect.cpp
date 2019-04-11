@@ -1305,14 +1305,6 @@ void KeyframeEffect::GetProperties(
 
 void KeyframeEffect::GetKeyframes(JSContext*& aCx, nsTArray<JSObject*>& aResult,
                                   ErrorResult& aRv) const {
-  MOZ_ASSERT(aResult.IsEmpty());
-  MOZ_ASSERT(!aRv.Failed());
-
-  if (!aResult.SetCapacity(mKeyframes.Length(), mozilla::fallible)) {
-    aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
-    return;
-  }
-
   bool isCSSAnimation = mAnimation && mAnimation->AsCSSAnimation();
 
   // For Servo, when we have CSS Animation @keyframes with variables, we convert
@@ -1339,7 +1331,23 @@ void KeyframeEffect::GetKeyframes(JSContext*& aCx, nsTArray<JSObject*>& aResult,
     computedStyle = GetTargetComputedStyle(Flush::Style);
   }
 
-  for (const Keyframe& keyframe : mKeyframes) {
+  KeyframeEffect::SerializeKeyframes(aCx, mKeyframes, mBaseValues,
+                                     computedStyle, aResult, aRv);
+}
+
+/* static */ void KeyframeEffect::SerializeKeyframes(
+    JSContext*& aCx, const nsTArray<Keyframe>& aKeyframes,
+    const BaseValuesHashmap& aBaseValues, ComputedStyle* aComputedStyle,
+    nsTArray<JSObject*>& aResult, ErrorResult& aRv) {
+  MOZ_ASSERT(aResult.IsEmpty());
+  MOZ_ASSERT(!aRv.Failed());
+
+  if (!aResult.SetCapacity(aKeyframes.Length(), mozilla::fallible)) {
+    aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
+    return;
+  }
+
+  for (const Keyframe& keyframe : aKeyframes) {
     // Set up a dictionary object for the explicit members
     BaseComputedKeyframe keyframeDict;
     if (keyframe.mOffset) {
@@ -1366,7 +1374,7 @@ void KeyframeEffect::GetKeyframes(JSContext*& aCx, nsTArray<JSObject*>& aResult,
     // keyframe are stored in a servo's declaration block. Find the declaration
     // block to resolve CSS variables in the keyframe.
     // This workaround will be solved by bug 1391537.
-    if (isCSSAnimation) {
+    if (aComputedStyle) {
       for (const PropertyValuePair& propertyValue : keyframe.mPropertyValues) {
         if (propertyValue.mProperty ==
             nsCSSPropertyID::eCSSPropertyExtra_variable) {
@@ -1387,10 +1395,10 @@ void KeyframeEffect::GetKeyframes(JSContext*& aCx, nsTArray<JSObject*>& aResult,
       if (propertyValue.mServoDeclarationBlock) {
         Servo_DeclarationBlock_SerializeOneValue(
             propertyValue.mServoDeclarationBlock, propertyValue.mProperty,
-            &stringValue, computedStyle, customProperties);
+            &stringValue, aComputedStyle, customProperties);
       } else {
         RawServoAnimationValue* value =
-            mBaseValues.GetWeak(propertyValue.mProperty);
+            aBaseValues.GetWeak(propertyValue.mProperty);
 
         if (value) {
           Servo_AnimationValue_Serialize(value, propertyValue.mProperty,

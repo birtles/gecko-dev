@@ -124,6 +124,9 @@ void DumpAnimationProperties(nsTArray<AnimationProperty>& aAnimationProperties);
 
 struct ElementPropertyTransition;
 
+using BaseValuesHashmap =
+    nsRefPtrHashtable<nsUint32HashKey, RawServoAnimationValue>;
+
 namespace dom {
 
 class Animation;
@@ -183,8 +186,14 @@ class KeyframeEffect : public AnimationEffect,
   void SetTarget(const Nullable<ElementOrCSSPseudoElement>& aTarget,
                  ErrorResult& aRv);
 
-  void GetKeyframes(JSContext*& aCx, nsTArray<JSObject*>& aResult,
-                    ErrorResult& aRv) const;
+  virtual void GetKeyframes(JSContext*& aCx, nsTArray<JSObject*>& aResult,
+                            ErrorResult& aRv) const;
+  static void SerializeKeyframes(JSContext*& aCx,
+                                 const nsTArray<Keyframe>& aKeyframes,
+                                 const BaseValuesHashmap& aBaseValues,
+                                 ComputedStyle* aComputedStyle,
+                                 nsTArray<JSObject*>& aResult,
+                                 ErrorResult& aRv);
   virtual void GetProperties(nsTArray<AnimationPropertyDetails>& aProperties,
                              ErrorResult& aRv) const;
 
