@@ -37,6 +37,7 @@ EXPORTS.mozilla += [
     'FillSnapshot.h',
     'FillTimingParams.h',
     'Keyframe.h',
+    'KeyframeEffectComparator.h',
     'KeyframeEffectParams.h',
     'KeyframeUtils.h',
     'PendingAnimationTracker.h',

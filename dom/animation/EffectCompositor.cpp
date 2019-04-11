@@ -19,6 +19,7 @@
 #include "mozilla/AutoRestore.h"
 #include "mozilla/ComputedStyleInlines.h"
 #include "mozilla/EffectSet.h"
+#include "mozilla/KeyframeEffectComparator.h"
 #include "mozilla/LayerAnimationInfo.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/RestyleManager.h"
@@ -376,24 +377,6 @@ void EffectCompositor::UpdateEffectProperties(const ComputedStyle* aStyle,
   }
 }
 
-namespace {
-class EffectCompositeOrderComparator {
- public:
-  bool Equals(const KeyframeEffect* a, const KeyframeEffect* b) const {
-    return a == b;
-  }
-
-  bool LessThan(const KeyframeEffect* a, const KeyframeEffect* b) const {
-    MOZ_ASSERT(a->GetAnimation() && b->GetAnimation());
-    MOZ_ASSERT(
-        Equals(a, b) ||
-        a->GetAnimation()->HasLowerCompositeOrderThan(*b->GetAnimation()) !=
-            b->GetAnimation()->HasLowerCompositeOrderThan(*a->GetAnimation()));
-    return a->GetAnimation()->HasLowerCompositeOrderThan(*b->GetAnimation());
-  }
-};
-}  // namespace
-
 bool EffectCompositor::GetPartialServoAnimationRule(
     const dom::Element* aElement, PseudoStyleType aPseudoType,
     const KeyframeEffect* aLastEffect, CascadeLevel aCascadeLevel,
@@ -416,7 +399,7 @@ bool EffectCompositor::GetPartialServoAnimationRule(
   for (KeyframeEffect* effect : *effectSet) {
     sortedEffectList.AppendElement(effect);
   }
-  sortedEffectList.Sort(EffectCompositeOrderComparator());
+  sortedEffectList.Sort(KeyframeEffectComparator());
 
   // If multiple animations affect the same property, animations with higher
   // composite order (priority) override or add or animations with lower
@@ -619,7 +602,7 @@ void EffectCompositor::UpdateCascadeResults(EffectSet& aEffectSet,
   for (KeyframeEffect* effect : aEffectSet) {
     sortedEffectList.AppendElement(effect);
   }
-  sortedEffectList.Sort(EffectCompositeOrderComparator());
+  sortedEffectList.Sort(KeyframeEffectComparator());
 
   // Get properties that override the *animations* level of the cascade.
   //
