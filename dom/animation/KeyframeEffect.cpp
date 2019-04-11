@@ -1009,9 +1009,19 @@ void KeyframeEffect::UpdateTargetRegistration() {
   MOZ_ASSERT(isRelevant == IsCurrent() || IsInEffect(),
              "Out of date Animation::IsRelevant value");
 
-  // If there is a compact representation of ourselves we should not register
-  // with the EffectSet or else our effect would be applied twice.
-  bool shouldBeRegistered = isRelevant && !GetCompactFillEffect();
+  // Effects belonging to relevant animations should be registered with the
+  // effect set unless:
+  //
+  // a) There is a compact representation of the effect present (since _it_
+  //    should be registered, not us, or else our effect would be applied
+  //    twice), or
+  //
+  // b) We are a part of a FillAnimation which is really just a public-facing
+  //    facade used to describe the filling effect and not something that
+  //    actually affects style -- style is updated by its source effects.
+  //
+  bool shouldBeRegistered = isRelevant && !GetCompactFillEffect() &&
+                            !(mAnimation && mAnimation->AsFillAnimation());
 
   if (shouldBeRegistered && !mInEffectSet) {
     EffectSet* effectSet = EffectSet::GetOrCreateEffectSet(
