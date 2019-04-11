@@ -17,6 +17,7 @@
 #include "mozilla/StaticPrefs.h"
 #include "mozilla/dom/Animation.h"
 #include "mozilla/dom/Attr.h"
+#include "mozilla/dom/FillAnimation.h"
 #include "mozilla/dom/Flex.h"
 #include "mozilla/dom/Grid.h"
 #include "mozilla/dom/ScriptLoader.h"
@@ -58,6 +59,7 @@
 #include "mozilla/AnimationComparator.h"
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/ContentEvents.h"
+#include "mozilla/CompactFillEffect.h"
 #include "mozilla/DeclarationBlock.h"
 #include "mozilla/EffectSet.h"
 #include "mozilla/EventDispatcher.h"
@@ -66,6 +68,7 @@
 #include "mozilla/EventStates.h"
 #include "mozilla/FullscreenChange.h"
 #include "mozilla/InternalMutationEvent.h"
+#include "mozilla/KeyframeEffectComparator.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/RestyleManager.h"
@@ -3529,6 +3532,53 @@ void Element::GetAnimations(const AnimationFilter& filter,
   aAnimations.Sort(AnimationPtrComparator<RefPtr<Animation>>());
 }
 
+static void FlushFillingEffects(nsTArray<CompactFillEffect*>& aFillingEffects,
+                                nsTArray<RefPtr<Animation>>& aAnimations) {
+  if (aFillingEffects.IsEmpty()) {
+    return;
+  }
+
+  aAnimations.AppendElement(FillAnimation::Create(aFillingEffects));
+  aFillingEffects.Clear();
+}
+
+static void GetAnimationsWithFillEffects(
+    EffectSet& aEffectSet, nsTArray<RefPtr<Animation>>& aAnimations) {
+  nsTArray<KeyframeEffect*> sortedEffects;
+  for (KeyframeEffect* effect : aEffectSet) {
+    sortedEffects.AppendElement(effect);
+  }
+  sortedEffects.Sort(KeyframeEffectComparator());
+
+  nsTArray<CompactFillEffect*> fillingEffects;
+
+  for (KeyframeEffect* effect : sortedEffects) {
+    MOZ_ASSERT(effect && effect->GetAnimation(),
+               "Only effects associated with an animation should be "
+               "added to an element's effect set");
+    MOZ_ASSERT(effect->GetAnimation()->IsRelevant(),
+               "Only relevant animations should be added to an element's "
+               "effect set");
+
+    if (effect->AsCompactFillEffect()) {
+      // We should only combine effects if they have the same timeline.
+      if (!fillingEffects.IsEmpty() &&
+          fillingEffects.LastElement()->GetAnimation()->GetTimeline() !=
+              effect->GetAnimation()->GetTimeline()) {
+        FlushFillingEffects(fillingEffects, aAnimations);
+      }
+      fillingEffects.AppendElement(effect->AsCompactFillEffect());
+      continue;
+    }
+
+    FlushFillingEffects(fillingEffects, aAnimations);
+
+    aAnimations.AppendElement(effect->GetAnimation());
+  }
+
+  FlushFillingEffects(fillingEffects, aAnimations);
+}
+
 /* static */
 void Element::GetAnimationsUnsorted(Element* aElement,
                                     PseudoStyleType aPseudoType,
@@ -3545,26 +3595,25 @@ void Element::GetAnimationsUnsorted(Element* aElement,
     return;
   }
 
+  // Normally we don't need to sort animations until the very end (hence the
+  // name of this function). However, if we have compact fill effects, we need
+  // to sort within the effects for _this_ element so that we can correctly
+  // combine adjacent effects into FillAnimations.
+
+  if (effects->MayHaveCompactFillEffects()) {
+    GetAnimationsWithFillEffects(*effects, aAnimations);
+    return;
+  }
+
   for (KeyframeEffect* effect : *effects) {
-    KeyframeEffect* effectToUse = effect;
-
-    // If this is a compacted effect, return the original animation/effect.
-    // This is a temporary measure until we introduce FillAnimations.
-    if (effect->AsCompactFillEffect()) {
-      KeyframeEffect* originalEffect = effect->GetLinkedEffect();
-      MOZ_ASSERT(originalEffect, "We should be preserving the original effect");
-      effectToUse = originalEffect;
-    }
-
-    MOZ_ASSERT(effectToUse && effectToUse->GetAnimation(),
+    MOZ_ASSERT(effect && effect->GetAnimation(),
                "Only effects associated with an animation should be "
                "added to an element's effect set");
-    Animation* animation = effectToUse->GetAnimation();
-
-    MOZ_ASSERT(animation->IsRelevant(),
+    MOZ_ASSERT(effect->GetAnimation()->IsRelevant(),
                "Only relevant animations should be added to an element's "
                "effect set");
-    aAnimations.AppendElement(animation);
+
+    aAnimations.AppendElement(effect->GetAnimation());
   }
 }
 

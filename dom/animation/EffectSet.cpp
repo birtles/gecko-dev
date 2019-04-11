@@ -184,6 +184,8 @@ void EffectSet::AddEffect(dom::KeyframeEffect& aEffect) {
     return;
   }
 
+  mMayHaveCompactFillEffects |= !!aEffect.AsCompactFillEffect();
+
   MarkCascadeNeedsUpdate();
 }
 
