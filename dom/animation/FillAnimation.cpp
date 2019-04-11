@@ -5,7 +5,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "FillAnimation.h"
+
+#include "mozilla/AnimationTarget.h"  // For ToOwningAnimationTarget
 #include "mozilla/dom/FillAnimationBinding.h"
+#include "mozilla/FillEffect.h"
 
 namespace mozilla {
 namespace dom {
@@ -19,6 +22,58 @@ NS_INTERFACE_MAP_END_INHERITING(Animation)
 JSObject* FillAnimation::WrapObject(JSContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return FillAnimation_Binding::Wrap(aCx, this, aGivenProto);
+}
+
+/* static */ already_AddRefed<FillAnimation> FillAnimation::Create(
+    const nsTArray<CompactFillEffect*>& aSourceEffects) {
+  MOZ_ASSERT(!aSourceEffects.IsEmpty(),
+             "Should have at least one source effect");
+
+#ifdef DEBUG
+  {
+    AnimationTimeline* timeline = nullptr;
+    NonOwningAnimationTarget target;
+
+    // All source effects should...
+    for (CompactFillEffect* effect : aSourceEffects) {
+      // ... be associated with an animation,
+      MOZ_ASSERT(effect->GetAnimation(), "Should have an animation");
+
+      // ... be associated with the same timeline,
+      MOZ_ASSERT(effect->GetAnimation()->GetTimeline(),
+                 "Should have a timeline");
+      MOZ_ASSERT(!timeline || effect->GetAnimation()->GetTimeline() == timeline,
+                 "Should have the same timeline");
+      timeline = effect->GetAnimation()->GetTimeline();
+
+      // ... and target the same element.
+      MOZ_ASSERT(effect->GetTarget() && effect->GetTarget()->mElement,
+                 "Should have a target element");
+      MOZ_ASSERT(!target.mElement || effect->GetTarget().ref() == target,
+                 "Should have the same target");
+      target = effect->GetTarget().ref();
+    }
+  }
+#endif
+
+  // Although any effect in |aSourceEffects| would do, we use the last one here
+  // since we'll want the last animation below in order to shadow its animation
+  // index.
+  CompactFillEffect* lastEffect = aSourceEffects.LastElement();
+  RefPtr<FillEffect> fillEffect =
+      new FillEffect(lastEffect->GetOwnerDocument(),
+                     ToOwningAnimationTarget(lastEffect->GetTarget()).ref());
+  fillEffect->Init(aSourceEffects);
+
+  Animation* lastAnimation = lastEffect->GetAnimation();
+  RefPtr<FillAnimation> fillAnimation =
+      new FillAnimation(lastAnimation->GetOwnerGlobal());
+  fillAnimation->SetTimelineNoUpdate(lastAnimation->GetTimeline());
+  fillAnimation->SetEffectNoUpdate(fillEffect);
+  fillAnimation->SetStartTime(Nullable<TimeDuration>(TimeDuration()));
+  fillAnimation->ShadowAnimationIndex(*lastAnimation);
+
+  return fillAnimation.forget();
 }
 
 }  // namespace dom

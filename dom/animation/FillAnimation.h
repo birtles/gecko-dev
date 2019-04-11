@@ -12,6 +12,9 @@
 #include "mozilla/dom/Animation.h"
 
 namespace mozilla {
+
+class CompactFillEffect;
+
 namespace dom {
 
 class FillAnimation : public Animation {
@@ -31,6 +34,9 @@ class FillAnimation : public Animation {
 
   FillAnimation* AsFillAnimation() override { return this; }
   const FillAnimation* AsFillAnimation() const override { return this; }
+
+  static already_AddRefed<FillAnimation> Create(
+      const nsTArray<CompactFillEffect*>& aSourceEffects);
 
   // Cancels the FillAnimation but in such a way that it doesn't cancel all the
   // CompactFillEffects it wraps.
