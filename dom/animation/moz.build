@@ -50,6 +50,7 @@ UNIFIED_SOURCES += [
     'AnimationEffect.cpp',
     'AnimationEventDispatcher.cpp',
     'AnimationPerformanceWarning.cpp',
+    'AnimationTarget.cpp',
     'AnimationTimeline.cpp',
     'AnimationUtils.cpp',
     'CompactAnimationUtils.cpp',

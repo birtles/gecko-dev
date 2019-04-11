@@ -6,7 +6,7 @@
 
 #include "CompactFillEffect.h"
 
-#include "mozilla/AnimationTarget.h"
+#include "mozilla/AnimationTarget.h"  // For ToOwningAnimationTarget
 #include "mozilla/dom/FillAnimation.h"
 #include "mozilla/FillTimingParams.h"
 #include "mozilla/KeyframeEffectParams.h"
@@ -26,19 +26,6 @@ NS_IMPL_RELEASE_INHERITED(CompactFillEffect, KeyframeEffect)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(CompactFillEffect)
 NS_INTERFACE_MAP_END_INHERITING(KeyframeEffect)
-
-static Maybe<OwningAnimationTarget> ToOwningAnimationTarget(
-    const Maybe<const NonOwningAnimationTarget>& aTarget) {
-  Maybe<OwningAnimationTarget> result;
-  if (!aTarget) {
-    return result;
-  }
-
-  const NonOwningAnimationTarget& target = aTarget.ref();
-  result = Some(OwningAnimationTarget{target.mElement, target.mPseudoType});
-
-  return result;
-}
 
 CompactFillEffect::CompactFillEffect(dom::KeyframeEffect& aOriginalEffect)
     : dom::KeyframeEffect(aOriginalEffect.GetOwnerDocument(),

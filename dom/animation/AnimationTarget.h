@@ -69,6 +69,9 @@ inline void ImplCycleCollectionUnlink(Maybe<OwningAnimationTarget>& aTarget) {
   }
 }
 
+Maybe<OwningAnimationTarget> ToOwningAnimationTarget(
+    const Maybe<const NonOwningAnimationTarget>& aTarget);
+
 }  // namespace mozilla
 
 #endif  // mozilla_AnimationTarget_h
