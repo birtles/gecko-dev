@@ -55,7 +55,7 @@ test(t => {
     fill: 'forwards',
   });
   animation.finish();
-  assert_array_equals(div.getAnimations(), [animation]);
+  assert_equals(div.getAnimations().length, 1);
 }, 'Returns finished animations that fill forwards');
 
 test(t => {
@@ -81,7 +81,7 @@ test(t => {
     fill: 'backwards',
   });
   animation.playbackRate = -1;
-  assert_array_equals(div.getAnimations(), [animation]);
+  assert_equals(div.getAnimations().length, 1);
 }, 'Returns reversed finished animations that fill backwards');
 
 test(t => {
