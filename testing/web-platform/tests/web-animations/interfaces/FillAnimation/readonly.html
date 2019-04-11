@@ -1,0 +1,119 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>FillAnimation read-only behavior</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#fillanimation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<script>
+'use strict';
+
+const getFillAnimation = t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animation.finish();
+
+  assert_equals(div.getAnimations().length, 1);
+  assert_class_string(div.getAnimations()[0], 'FillAnimation');
+
+  return div.getAnimations()[0];
+};
+
+test(t => {
+  const fillAnimation = getFillAnimation(t);
+
+  assert_throws('NoModificationAllowedError', () => {
+    fillAnimation.finish();
+  }, 'finish() should throw');
+  assert_throws('NoModificationAllowedError', () => {
+    fillAnimation.play();
+  }, 'play() should throw');
+  assert_throws('NoModificationAllowedError', () => {
+    fillAnimation.pause();
+  }, 'pause() should throw');
+  assert_throws('NoModificationAllowedError', () => {
+    fillAnimation.updatePlaybackRate(-1);
+  }, 'updatePlaybackRate() should throw');
+  assert_throws('NoModificationAllowedError', () => {
+    fillAnimation.reverse();
+  }, 'reverse() should throw');
+}, 'Methods that mutate a FillAnimation throw');
+
+test(t => {
+  const fillAnimation = getFillAnimation(t);
+
+  assert_throws('NoModificationAllowedError', () => {
+    fillAnimation.effect = null;
+  }, 'setting effect should throw');
+  assert_throws('NoModificationAllowedError', () => {
+    fillAnimation.timeline = document.timeline;
+  }, 'setting timeline should throw');
+  assert_throws('NoModificationAllowedError', () => {
+    // We deliberately set a redundant value to test that the read-only check is
+    // performed before any optimizations to ignore redundant values.
+    fillAnimation.startTime = fillAnimation.startTime;
+  }, 'setting startTime should throw');
+  assert_throws('NoModificationAllowedError', () => {
+    fillAnimation.currentTime = fillAnimation.currentTime;
+  }, 'setting currentTime should throw');
+  assert_throws('NoModificationAllowedError', () => {
+    fillAnimation.playbackRate = 1;
+  }, 'setting playbackRate should throw');
+}, 'Setting most members of a FillAnimation throws');
+
+test(t => {
+  const fillAnimation = getFillAnimation(t);
+  const otherAnimation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+
+  assert_throws('NoModificationAllowedError', () => {
+    otherAnimation.effect = fillAnimation.effect;
+  }, 'Setting effect to another animation');
+}, 'Attempting to set a FillAnimation\'s effect to another Animation should'
+   + ' throw');
+
+test(t => {
+  const fillAnimation = getFillAnimation(t);
+  fillAnimation.id = 'test';
+  assert_equals(fillAnimation.id, 'test');
+}, 'Setting the id of a FillAnimation should not throw');
+
+async_test(t => {
+  const fillAnimation = getFillAnimation(t);
+
+  fillAnimation.oncancel = () => { t.done(); };
+  fillAnimation.onfinish = () => {};
+
+  fillAnimation.cancel();
+}, 'Setting event handler attributes of a FillAnimation should not throw');
+
+test(t => {
+  const fillAnimation = getFillAnimation(t);
+
+  assert_throws('NoModificationAllowedError', () => {
+    fillAnimation.effect.updateTiming({});
+  }, 'effect.updateTiming() should throw');
+  assert_throws('NoModificationAllowedError', () => {
+    fillAnimation.effect.setKeyframes(null);
+  }, 'effect.setKeyframes() should throw');
+}, 'Methods that mutate a FillAnimation\'s target effect throw');
+
+test(t => {
+  const fillAnimation = getFillAnimation(t);
+
+  assert_throws('NoModificationAllowedError', () => {
+    fillAnimation.effect.target = null;
+  }, 'setting effect.target should throw');
+  assert_throws('NoModificationAllowedError', () => {
+    fillAnimation.effect.iterationComposite = 'replace';
+  }, 'setting effect.iterationComposite should throw');
+  assert_throws('NoModificationAllowedError', () => {
+    fillAnimation.effect.composite = 'replace';
+  }, 'setting effect.composite should throw');
+}, 'Setting members of a FillAnimation\'s target effect throws');
+
+</script>
+</body>

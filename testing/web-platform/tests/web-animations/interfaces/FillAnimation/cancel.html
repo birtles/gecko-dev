@@ -1,0 +1,215 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>FillAnimation.cancel</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#fillanimation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<script>
+'use strict';
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animation.finish();
+
+  const fillAnimation = div.getAnimations()[0];
+  assert_not_equals(fillAnimation, animation);
+
+  fillAnimation.cancel();
+
+  assert_equals(fillAnimation.playState, 'idle');
+  assert_equals(animation.playState, 'idle');
+}, 'Canceling a FillAnimation cancels the corresponding Animation');
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animation.finish();
+
+  const fillAnimation = div.getAnimations()[0];
+  assert_not_equals(fillAnimation, animation);
+
+  animation.cancel();
+
+  assert_equals(animation.playState, 'idle');
+  assert_equals(fillAnimation.playState, 'idle');
+}, 'Canceling a source Animation cancels the corresponding FillAnimation');
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({ opacity: [1, 0] }, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animation.finish();
+
+  const fillAnimation = div.getAnimations()[0];
+  assert_equals(parseFloat(getComputedStyle(div).opacity), 0);
+
+  fillAnimation.cancel();
+
+  assert_equals(parseFloat(getComputedStyle(div).opacity), 1);
+}, 'Canceling a FillAnimation causes style to update');
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({ opacity: [1, 0] }, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animation.finish();
+
+  // Get the FillAnimation even though we won't use it just to ensure that any
+  // actions the UA takes to generate FillAnimations don't affect the result.
+  const fillAnimation = div.getAnimations()[0];
+
+  assert_equals(parseFloat(getComputedStyle(div).opacity), 0);
+
+  animation.cancel();
+
+  assert_equals(parseFloat(getComputedStyle(div).opacity), 1);
+}, 'Canceling a source Animation causes style to update');
+
+test(t => {
+  const div = createDiv(t);
+  const animA = div.animate({ opacity: [1, 0] }, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  const animB = div.animate({ marginLeft: ['0px', '100px'] }, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animA.finish();
+  animB.finish();
+
+  const fillAnimation = div.getAnimations()[0];
+
+  fillAnimation.cancel();
+
+  assert_equals(animA.playState, 'idle');
+  assert_equals(animB.playState, 'idle');
+  assert_equals(fillAnimation.playState, 'idle');
+}, 'Canceling a FillAnimation cancels multiple source Animations');
+
+test(t => {
+  const div = createDiv(t);
+
+  // Create a single forwards-filling animation...
+  const animA = div.animate({ opacity: [1, 0] }, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animA.finish();
+
+  // ... and get its FillAnimation
+  const fillAnimA = div.getAnimations()[0];
+
+  // Then create a second forwards-filling animation...
+  const animB = div.animate({ marginLeft: ['0px', '100px'] }, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animB.finish();
+
+  // ... and get the new composite FillAnimation
+  const fillAnimAB = div.getAnimations()[0];
+
+  // Now |animA| is a source animation for both |fillAnimA| and |fillAnimAB|.
+  // Canceling it should cancel both FillAnimations.
+
+  animA.cancel();
+
+  assert_equals(fillAnimA.playState, 'idle');
+  assert_equals(fillAnimAB.playState, 'idle');
+  assert_equals(animA.playState, 'idle');
+
+  // But it shouldn't cancel fillAnimB.
+  assert_equals(animB.playState, 'finished');
+}, 'Canceling a source animation cancels multiple FillAnimations');
+
+test(t => {
+  const div = createDiv(t);
+
+  const animA = div.animate({ opacity: [1, 0] }, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animA.finish();
+  const fillAnimA = div.getAnimations()[0];
+
+  const animB = div.animate({ marginLeft: ['0px', '100px'] }, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animB.finish();
+  const fillAnimAB = div.getAnimations()[0];
+
+  fillAnimAB.cancel();
+
+  assert_equals(fillAnimA.playState, 'idle');
+  assert_equals(fillAnimAB.playState, 'idle');
+  assert_equals(animA.playState, 'idle');
+  assert_equals(animB.playState, 'idle');
+}, 'Canceling a FillAnimation cancels nested FillAnimations');
+
+test(t => {
+  const div = createDiv(t);
+
+  const animA = div.animate({ opacity: [1, 0] }, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animA.finish();
+  const fillAnimA = div.getAnimations()[0];
+
+  const animB = div.animate({ marginLeft: ['0px', '100px'] }, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animB.finish();
+  const fillAnimAB = div.getAnimations()[0];
+
+  assert_equals(getComputedStyle(div).marginLeft, '100px');
+
+  fillAnimA.cancel();
+
+  assert_equals(getComputedStyle(div).marginLeft, '100px');
+}, 'Canceling a nested FillAnimation only clears its part of the combined'
+   + ' fill style');
+
+test(t => {
+  const div = createDiv(t);
+
+  const animA = div.animate({ opacity: [1, 0] }, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animA.finish();
+  const fillAnimA = div.getAnimations()[0];
+
+  const animB = div.animate({ marginLeft: ['0px', '100px'] }, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animB.finish();
+  const fillAnimAB = div.getAnimations()[0];
+
+  assert_equals(getComputedStyle(div).marginLeft, '100px');
+
+  animA.cancel();
+
+  assert_equals(getComputedStyle(div).marginLeft, '100px');
+}, 'Canceling a source Animation that represents only part of a FillAnimation'
+   + ' only clears its part of the combined fill style');
+
+</script>
+</body>

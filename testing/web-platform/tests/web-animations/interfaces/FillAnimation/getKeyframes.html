@@ -1,0 +1,279 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>FillAnimation.getKeyframes</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#fillanimation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<script src="../../resources/keyframe-utils.js"></script>
+<body>
+<script>
+'use strict';
+
+// Wrapper around assert_frame_lists_equal that fills out the boilerplate
+function assert_fill_keyframes_equal(actual, expectedSummary) {
+  const defaults = { composite: 'auto', easing: 'linear' };
+  const expected = [
+    { offset: 0, computedOffset: 0, ...defaults, ...expectedSummary },
+    { offset: 1, computedOffset: 1, ...defaults, ...expectedSummary },
+  ];
+  assert_frame_lists_equal(actual, expected);
+}
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(
+    { marginLeft: ['100px', '200px'], opacity: [1, 0] },
+    {
+      duration: 100 * MS_PER_SEC,
+      fill: 'forwards',
+    }
+  );
+  animation.finish();
+  const fillAnimation = div.getAnimations()[0];
+
+  assert_fill_keyframes_equal(fillAnimation.effect.getKeyframes(), {
+    marginLeft: '200px',
+    opacity: '0',
+  });
+}, 'A replace animation returns the last keyframe value');
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(
+    { marginLeft: ['100px', '200px'], opacity: [1, 0] },
+    {
+      duration: 100 * MS_PER_SEC,
+      iterations: 0.5,
+      fill: 'forwards',
+    }
+  );
+  animation.finish();
+  const fillAnimation = div.getAnimations()[0];
+
+  assert_fill_keyframes_equal(fillAnimation.effect.getKeyframes(), {
+    marginLeft: '150px',
+    opacity: '0.5',
+  });
+}, 'A replace animation filling mid-interval returns the interpolated value');
+
+test(t => {
+  const div = createDiv(t);
+  div.style.marginLeft = '100px';
+  const animation = div.animate(
+    { marginLeft: ['100px', '200px'] },
+    {
+      duration: 100 * MS_PER_SEC,
+      fill: 'forwards',
+      composite: 'add',
+    }
+  );
+  animation.finish();
+  const fillAnimation = div.getAnimations()[0];
+
+  assert_fill_keyframes_equal(fillAnimation.effect.getKeyframes(), {
+    marginLeft: '300px',
+  });
+
+  div.style.marginLeft = '200px';
+
+  assert_fill_keyframes_equal(fillAnimation.effect.getKeyframes(), {
+    marginLeft: '400px',
+  });
+}, 'An additive animation reflects changes to the base value');
+
+test(t => {
+  const div = createDiv(t);
+  div.style.marginLeft = '100px';
+  const animation = div.animate(
+    [{ marginLeft: '100px' }, { marginLeft: '200px', composite: 'add' }],
+    {
+      duration: 100 * MS_PER_SEC,
+      fill: 'forwards',
+      iterations: 0.5,
+    }
+  );
+  animation.finish();
+  const fillAnimation = div.getAnimations()[0];
+
+  assert_fill_keyframes_equal(fillAnimation.effect.getKeyframes(), {
+    marginLeft: '200px',
+  });
+
+  div.style.marginLeft = '200px';
+
+  assert_fill_keyframes_equal(fillAnimation.effect.getKeyframes(), {
+    marginLeft: '250px',
+  });
+}, 'A partially-additive animation reflects changes to the base value');
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(
+    { marginLeft: ['100px', '200px'] },
+    {
+      duration: 100 * MS_PER_SEC,
+      fill: 'forwards',
+    }
+  );
+  animation.finish();
+  const fillAnimation = div.getAnimations()[0];
+
+  assert_fill_keyframes_equal(fillAnimation.effect.getKeyframes(), {
+    marginLeft: '200px',
+  });
+
+  animation.effect.setKeyframes({ marginLeft: ['300px', '400px'] });
+  assert_fill_keyframes_equal(fillAnimation.effect.getKeyframes(), {
+    marginLeft: '400px',
+  });
+}, "Changes to the source animation's keyframes are reflected");
+
+test(t => {
+  const div = createDiv(t);
+  div.style.marginLeft = '100px';
+  const animation = div.animate(
+    { marginLeft: ['100px', '200px'] },
+    {
+      duration: 100 * MS_PER_SEC,
+      fill: 'forwards',
+    }
+  );
+  animation.finish();
+  const fillAnimation = div.getAnimations()[0];
+
+  assert_fill_keyframes_equal(fillAnimation.effect.getKeyframes(), {
+    marginLeft: '200px',
+  });
+
+  animation.effect.composite = 'add';
+
+  assert_fill_keyframes_equal(fillAnimation.effect.getKeyframes(), {
+    marginLeft: '300px',
+  });
+}, "Changes to the source animation's composite operation are reflected");
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(
+    { marginLeft: ['100px', '200px'] },
+    {
+      duration: 100 * MS_PER_SEC,
+      fill: 'forwards',
+      iterations: 2,
+    }
+  );
+  animation.finish();
+  const fillAnimation = div.getAnimations()[0];
+
+  assert_fill_keyframes_equal(fillAnimation.effect.getKeyframes(), {
+    marginLeft: '200px',
+  });
+
+  animation.effect.iterationComposite = 'accumulate';
+
+  assert_fill_keyframes_equal(fillAnimation.effect.getKeyframes(), {
+    marginLeft: '400px',
+  });
+}, "Changes to the source animation's iteration composite operation are"
+   + ' reflected');
+
+test(t => {
+  const div = createDiv(t);
+  const animationA = div.animate(
+    { marginLeft: ['100px', '200px'] },
+    { duration: 100 * MS_PER_SEC, fill: 'forwards' }
+  );
+  const animationB = div.animate(
+    { marginLeft: ['300px', '400px'] },
+    { duration: 100 * MS_PER_SEC, fill: 'forwards' }
+  );
+  animationA.finish();
+  animationB.finish();
+  const fillAnimation = div.getAnimations()[0];
+
+  assert_fill_keyframes_equal(fillAnimation.effect.getKeyframes(), {
+    marginLeft: '400px',
+  });
+}, 'For a replace animation on top of the stack, only the last keyframe value'
+   + ' of the replace animation is returned');
+
+test(t => {
+  const div = createDiv(t);
+  const animationA = div.animate(
+    { marginLeft: ['100px', '200px'] },
+    { duration: 100 * MS_PER_SEC, fill: 'forwards' }
+  );
+  const animationB = div.animate(
+    { marginLeft: ['100px', '200px'] },
+    { duration: 100 * MS_PER_SEC, fill: 'forwards', composite: 'add' }
+  );
+  animationA.finish();
+  animationB.finish();
+  const fillAnimation = div.getAnimations()[0];
+
+  assert_fill_keyframes_equal(fillAnimation.effect.getKeyframes(), {
+    marginLeft: '400px',
+  });
+}, 'For an additive animation on top of the stack, the combined result is'
+   + ' returned');
+
+test(t => {
+  const div = createDiv(t);
+  const animationA = div.animate(
+    { marginLeft: ['100px', '200px'] },
+    { duration: 100 * MS_PER_SEC, fill: 'forwards' }
+  );
+  const animationB = div.animate(
+    { marginLeft: ['100px', '200px'] },
+    { duration: 100 * MS_PER_SEC, fill: 'forwards', composite: 'add' }
+  );
+  animationA.finish();
+  animationB.finish();
+  const fillAnimation = div.getAnimations()[0];
+
+  assert_fill_keyframes_equal(fillAnimation.effect.getKeyframes(), {
+    marginLeft: '400px',
+  });
+
+  animationA.effect.setKeyframes({ marginLeft: ['100px', '300px'] });
+
+  assert_fill_keyframes_equal(fillAnimation.effect.getKeyframes(), {
+    marginLeft: '500px',
+  });
+}, 'For an additive animation on top of the stack, changes to underlying'
+   + ' animations are reflected');
+
+test(t => {
+  const div = createDiv(t);
+  div.style.fontSize = '10px';
+  const animationA = div.animate(
+    { marginLeft: ['10em', '20em'] },
+    { duration: 100 * MS_PER_SEC, fill: 'forwards' }
+  );
+  const animationB = div.animate(
+    [{ marginLeft: '100px' }, { marginLeft: '200px', composite: 'add' }],
+    {
+      duration: 100 * MS_PER_SEC,
+      fill: 'forwards',
+      iterations: 0.5,
+    }
+  );
+  animationA.finish();
+  animationB.finish();
+  const fillAnimation = div.getAnimations()[0];
+
+  assert_fill_keyframes_equal(fillAnimation.effect.getKeyframes(), {
+    marginLeft: '250px',
+  });
+
+  div.style.fontSize = '20px';
+
+  assert_fill_keyframes_equal(fillAnimation.effect.getKeyframes(), {
+    marginLeft: '350px',
+  });
+}, 'For a partially-additive animation on top of the stack, changes to'
+   + ' underlying animations are reflected via font-size are reflected');
+
+</script>
+</body>

@@ -119,6 +119,9 @@ async_test(t => {
     assert_equals(div.getAnimations().length, 1,
       'getAnimations returns Animations for CSS Animations that have'
       + ' finished but are filling forwards');
+    assert_class_string(div.getAnimations()[0], 'CSSAnimation',
+      'Forwards-filling CSS animations should be represented by a CSSAnimation,'
+      + ' NOT a FillAnimation');
     t.done();
   }));
 

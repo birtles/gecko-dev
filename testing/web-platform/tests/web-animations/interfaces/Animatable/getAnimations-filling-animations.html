@@ -1,0 +1,231 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Animatable.getAnimations (forwards-filling animation handling)</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#dom-animatable-getanimations">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<script>
+'use strict';
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animation.finish();
+  assert_class_string(div.getAnimations()[0], 'FillAnimation');
+}, 'Returns a FillAnimation for animations that fill forwards');
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animation.finish();
+
+  // Originally we should get a FillAnimation
+  assert_equals(div.getAnimations().length, 1);
+  assert_not_equals(div.getAnimations()[0], animation);
+
+  animation.currentTime = 50 * MS_PER_SEC;
+
+  // But after seeking we should get |animation|
+  assert_equals(div.getAnimations().length, 1);
+  assert_equals(div.getAnimations()[0], animation);
+}, 'Returns the original Animation if it is seeked back to the running state');
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animation.finish();
+  const fillAnimation = div.getAnimations()[0];
+
+  animation.cancel();
+
+  assert_equals(div.getAnimations().length, 0);
+  assert_equals(fillAnimation.playState, 'idle');
+}, 'Does not return a FillAnimation if the corresponding Animation is'
+   + ' canceled');
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animation.finish();
+  const fillAnimation = div.getAnimations()[0];
+
+  animation.effect.target = null;
+
+  assert_equals(div.getAnimations().length, 0);
+}, 'Does not return a FillAnimation if the target element of the corresponding'
+   + ' Animation is set to null');
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animation.finish();
+  const fillAnimation = div.getAnimations()[0];
+
+  animation.effect = null;
+
+  assert_equals(div.getAnimations().length, 0);
+}, 'Does not return a FillAnimation if the effect of the corresponding'
+   + ' Animation is set to null');
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animation.finish();
+  const fillAnimation = div.getAnimations()[0];
+
+  // This will make the animation idle
+  animation.timeline = null;
+
+  assert_equals(div.getAnimations().length, 0);
+}, 'Does not return a FillAnimation if the timeline of the corresponding'
+   + ' Animation is set to null');
+
+test(t => {
+  const div = createDiv(t);
+  const effect = new KeyframeEffect(div, null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  const animation = new Animation(effect, null);
+  animation.startTime = document.timeline.currentTime - 100 * MS_PER_SEC;
+
+  // Initially the Animation won't be returned by getAnimations() because it is
+  // 'idle' (no current time).
+  assert_equals(div.getAnimations().length, 0);
+
+  // After assigning the timeline it should become 'finished' and represented by
+  // a FillAnimation.
+  animation.timeline = document.timeline;
+
+  assert_class_string(div.getAnimations()[0], 'FillAnimation');
+}, 'Returns a FillAnimation if a forwards-filling Animation is assigned a'
+   + ' monotonically-increasing timeline');
+
+test(t => {
+  const div = createDiv(t);
+  const animA = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  const animB = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  const animC = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  for (const anim of [animA, animB, animC]) {
+    anim.finish();
+  }
+
+  assert_equals(div.getAnimations().length, 1);
+}, 'Returns a single FillAnimation to represent multiple adjacent filling'
+   + ' animations');
+
+test(t => {
+  const div = createDiv(t);
+
+  const forwards = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  forwards.finish();
+
+  const backwards = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'backwards',
+  });
+  backwards.playbackRate = -1;
+  backwards.finish();
+
+  assert_equals(div.getAnimations().length, 1);
+}, 'Returns a single FillAnimation to represent multiple adjacent filling'
+   + ' animations even if they fill in different directions');
+
+test(t => {
+  const div = createDiv(t);
+  const animA = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  const animB = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    // Notice no fill mode here
+  });
+  const animC = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  for (const anim of [animA, animB, animC]) {
+    anim.finish();
+  }
+
+  assert_equals(div.getAnimations().length, 1);
+}, 'Returns a single FillAnimation to represent multiple adjacent filling'
+   + ' animations even if they were not previously adjacent');
+
+test(t => {
+  const div = createDiv(t);
+  const animA = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  const animB = div.animate(null, {
+    duration: 200 * MS_PER_SEC,
+  });
+  const animC = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+
+  animA.finish();
+  // Don't finish animB
+  animC.finish();
+
+  assert_equals(div.getAnimations().length, 3);
+}, 'Returns separate FillAnimation objects if the filling animations are not'
+   + ' adjacent');
+
+test(t => {
+  const div = createDiv(t);
+
+  const animA = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animA.finish();
+
+  const animB = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animB.timeline = new DocumentTimeline();
+  animB.finish();
+
+  assert_equals(div.getAnimations().length, 2);
+}, 'Returns separate FillAnimation objects if adjacent filling animations have'
+   + ' different timelines');
+
+</script>
+</body>

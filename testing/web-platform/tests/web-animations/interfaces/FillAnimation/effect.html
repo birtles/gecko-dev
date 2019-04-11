@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>FillAnimation.effect</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#fillanimation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<script>
+'use strict';
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animation.finish();
+  const fillAnimation = div.getAnimations()[0];
+
+  assert_class_string(fillAnimation.effect, 'KeyframeEffect');
+}, 'A FillAnimation should have a KeyframeEffect');
+
+</script>
+</body>
