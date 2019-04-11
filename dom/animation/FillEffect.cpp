@@ -10,6 +10,7 @@
 #include "mozilla/dom/Animation.h"
 #include "mozilla/FillTimingParams.h"
 #include "mozilla/KeyframeEffectParams.h"
+#include "mozilla/ServoBindings.h"
 
 namespace mozilla {
 
@@ -61,6 +62,94 @@ void FillEffect::NotifyAnimationInvalidated() {
   // source effects to be canceled at the same time.
 
   KeyframeEffect::NotifyAnimationInvalidated();
+}
+
+void FillEffect::GetKeyframes(JSContext*& aCx, nsTArray<JSObject*>& aResult,
+                              ErrorResult& aRv) const {
+  // FillEffects and their corresponding FillAnimations are readonly so we don't
+  // expect them ever be without a target effect or animation.
+  if (!mTarget || !mTarget->mElement || !mAnimation) {
+    return;
+  }
+
+  nsPresContext* presContext =
+      nsContentUtils::GetContextForContent(mTarget->mElement);
+  if (!presContext) {
+    return;
+  }
+
+  // Make sure the underlying computed style is up-to-date.
+  dom::Document* doc = GetRenderedDocument();
+  if (doc) {
+    doc->FlushPendingNotifications(
+        ChangesToFlush(FlushType::Style, false /* flush animations */));
+  }
+
+  // Determine the last source effect in our (unsorted) set.
+  //
+  // (We could just sort the effects when they are set, but that is O(n log n)
+  // and doing this is O(n) and we don't expect this to be called for most
+  // animations.)
+  const KeyframeEffect* lastSourceEffect = nullptr;
+  for (const KeyframeEffect* effect : mSourceEffects) {
+    if (!lastSourceEffect ||
+        (effect->GetAnimation() &&
+         lastSourceEffect->GetAnimation()->HasLowerCompositeOrderThan(
+             *effect->GetAnimation()))) {
+      lastSourceEffect = effect;
+    }
+  }
+
+  // Compose the animated style up to and including our last source effect.
+  UniquePtr<RawServoAnimationValueMap> animationValues =
+      Servo_AnimationValueMap_Create().Consume();
+  if (mSourceEffects.IsEmpty()) {
+    return;
+  }
+  bool result = presContext->EffectCompositor()->GetPartialServoAnimationRule(
+      mTarget->mElement, mTarget->mPseudoType, lastSourceEffect,
+      mAnimation->CascadeLevel(), animationValues.get());
+  if (!result) {
+    return;
+  }
+
+  // KeyframeEffect::SerializeKeyframes takes an array of keyframes and a set of
+  // base values. If a particular keyframe does not have a value it will use the
+  // base value.
+  //
+  // We exploit that here by setting up a base value set which has all the
+  // computed values for the properties we are animating. Then we pass in a set
+  // of empty keyframes specifying those values so that SerializeKeyframes will
+  // pick up the corresponding values from the base values.
+  nsRefPtrHashtable<nsUint32HashKey, RawServoAnimationValue> computedValues;
+
+  Keyframe firstKeyframe, lastKeyframe;
+  firstKeyframe.mOffset = Some(0.0);
+  firstKeyframe.mComputedOffset = 0.0;
+  lastKeyframe.mOffset = Some(1.0);
+  lastKeyframe.mComputedOffset = 1.0;
+
+  nsCSSPropertyIDSet properties;
+  for (const KeyframeEffect* effect : mSourceEffects) {
+    properties |= effect->GetPropertySet();
+  }
+
+  for (nsCSSPropertyID property : properties) {
+    firstKeyframe.mPropertyValues.AppendElement(PropertyValuePair(property));
+    lastKeyframe.mPropertyValues.AppendElement(PropertyValuePair(property));
+
+    RefPtr<RawServoAnimationValue> computedValue =
+        Servo_AnimationValueMap_GetValue(animationValues.get(), property)
+            .Consume();
+    computedValues.Put(property, computedValue);
+  }
+
+  AutoTArray<Keyframe, 2> dummyKeyframes;
+  dummyKeyframes.AppendElement(std::move(firstKeyframe));
+  dummyKeyframes.AppendElement(std::move(lastKeyframe));
+
+  KeyframeEffect::SerializeKeyframes(aCx, dummyKeyframes, computedValues,
+                                     nullptr, aResult, aRv);
 }
 
 void FillEffect::GetProperties(
