@@ -216,7 +216,7 @@ class KeyframeEffect : public AnimationEffect,
 
   void NotifyAnimationCanceled() override;
   KeyframeEffect* GetLinkedEffect() { return mLinkedEffect; }
-  virtual void SetLinkedEffect(KeyframeEffect* aLinkedEffect);
+  void SetLinkedEffect(KeyframeEffect* aLinkedEffect);
   FillSnapshot GetFillSnapshot() const;
 
   // Returns true if the effect includes a property in |aPropertySet| regardless
