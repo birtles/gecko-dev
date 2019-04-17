@@ -157,6 +157,8 @@ class Animation : public DOMEventTargetHelper,
 
   virtual void Tick();
   bool NeedsTicks() const {
+    MOZ_ASSERT(!AsFillAnimation(),
+               "Should not register FillAnimations with the timeline");
     return Pending() ||
            (PlayState() == AnimationPlayState::Running &&
             // An animation with a zero playback rate doesn't need ticks even if

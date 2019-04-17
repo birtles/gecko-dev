@@ -1321,7 +1321,9 @@ void Animation::UpdateTiming(SeekFlag aSeekFlag,
   UpdateFinishedState(aSeekFlag, aSyncNotifyFlag);
   UpdateEffect();
 
-  if (mTimeline) {
+  // We don't register FillAnimations with the timeline since they don't need
+  // ticks and we don't want the timeline to keep them alive.
+  if (mTimeline && !AsFillAnimation()) {
     mTimeline->NotifyAnimationUpdated(*this);
   }
 }
