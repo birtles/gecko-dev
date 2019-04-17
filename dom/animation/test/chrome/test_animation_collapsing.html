@@ -1,0 +1,156 @@
+<!doctype html>
+<head>
+<meta charset=utf-8>
+<title>Test infinitely filling animations are coalesced</title>
+<script type="application/javascript" src="../testharness.js"></script>
+<script type="application/javascript" src="../testharnessreport.js"></script>
+<script type="application/javascript" src="../testcommon.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+SpecialPowers.pushPrefEnv(
+  {
+    set: [['dom.animations-api.getAnimations.enabled', true]],
+  },
+  runTests
+);
+
+function runTests() {
+  promise_test(async t => {
+    const div = addDiv(t);
+
+    let animA = div.animate(
+      { opacity: [0, 1] },
+      {
+        duration: 1000,
+        fill: 'forwards',
+      }
+    );
+    let animB = div.animate(
+      { marginLeft: ['0px', '100px'] },
+      {
+        duration: 1000,
+        fill: 'forwards',
+      }
+    );
+
+    animA.finish();
+    animB.finish();
+
+    let fillAnimation = div.getAnimations()[0];
+    assert_equals(
+      fillAnimation.numSourceEffects,
+      2,
+      'Should initially have two source effects'
+    );
+
+    // Drop all references to source and fill animations and force GC
+
+    animA = null;
+    animB = null;
+    fillAnimation = null;
+
+    await waitForGC();
+
+    fillAnimation = div.getAnimations()[0];
+    assert_equals(
+      fillAnimation.numSourceEffects,
+      1,
+      'Should only have one source effect after collapsing'
+    );
+
+  }, 'Two adjacent source effects are combined');
+
+  promise_test(async t => {
+    const div = addDiv(t);
+
+    let animA = div.animate(
+      { opacity: [0, 1] },
+      {
+        duration: 1000,
+        fill: 'forwards',
+      }
+    );
+    // Interleaving animation
+    let animB = new Animation();
+    let animC = div.animate(
+      { marginLeft: ['0px', '100px'] },
+      {
+        duration: 1000,
+        fill: 'forwards',
+      }
+    );
+
+    animA.finish();
+    animC.finish();
+
+    assert_equals(
+      div.getAnimations().length,
+      1,
+      'Should initially have one FillAnimation'
+    );
+
+    let fillAnimation = div.getAnimations()[0];
+    assert_equals(
+      fillAnimation.numSourceEffects,
+      2,
+      'Should initially have two source effects'
+    );
+
+    // Drop all references to source and fill animations and force GC
+
+    animA = null;
+    animC = null;
+    fillAnimation = null;
+
+    await waitForGC();
+
+    // We should STILL have two source effects because animB could always
+    // interleave.
+
+    fillAnimation = div.getAnimations()[0];
+    assert_equals(
+      fillAnimation.numSourceEffects,
+      2,
+      'Should still have two source effects after garbage-collection'
+    );
+
+    // Now if we drop B, however, we should be able to collapse
+
+    animB = null;
+    fillAnimation = null;
+
+    await waitForGC();
+
+    fillAnimation = div.getAnimations()[0];
+    assert_equals(
+      fillAnimation.numSourceEffects,
+      1,
+      'Should only have one source effect after dropping interleaving animation'
+    );
+
+  }, 'Two non-adjacent source effects are NOT combined until the interleaving'
+     + ' animations are dropped');
+
+  done();
+}
+
+async function waitForGC() {
+  // Wait a frame so that any DocumentTimelines can drops their references to
+  // the original animations.
+
+  await waitForNextFrame();
+
+  // Trigger garbage-collection so the source effects no longer have any
+  // references pointing to them.
+
+  SpecialPowers.gc();
+  SpecialPowers.forceGC();
+  SpecialPowers.forceCC();
+}
+
+</script>
+</body>

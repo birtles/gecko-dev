@@ -227,5 +227,34 @@ test(t => {
 }, 'Returns separate FillAnimation objects if adjacent filling animations have'
    + ' different timelines');
 
+test(t => {
+  const div1 = createDiv(t);
+  const div2 = createDiv(t);
+
+  const animA = div1.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  const animB = div2.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  const animC = div1.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+
+  animA.finish();
+  animC.finish();
+
+  // Initially we should have: [FillAnimationAC]
+  assert_equals(div1.getAnimations().length, 1);
+
+  // If we re-target animB at div1, however, we will need to split the
+  // FillAnimation so we get [FillAnimationA, animB, FillAnimationC].
+  animB.effect.target = div1;
+  assert_equals(div1.getAnimations().length, 3);
+}, 'Splits a combined FillAnimation if an interleaving animation appears');
+
 </script>
 </body>
