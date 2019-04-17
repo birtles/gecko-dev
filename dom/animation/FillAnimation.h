@@ -10,6 +10,7 @@
 #include "nsWrapperCache.h"
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/dom/Animation.h"
+#include "mozilla/WeakPtr.h"
 
 namespace mozilla {
 
@@ -17,7 +18,8 @@ class CompactFillEffect;
 
 namespace dom {
 
-class FillAnimation : public Animation {
+class FillAnimation : public Animation,
+                      public SupportsWeakPtr<FillAnimation> {
  protected:
   virtual ~FillAnimation() {}
 
@@ -27,6 +29,7 @@ class FillAnimation : public Animation {
   }
 
   NS_DECL_ISUPPORTS_INHERITED
+  MOZ_DECLARE_WEAKREFERENCE_TYPENAME(FillAnimation)
 
   nsIGlobalObject* GetParentObject() const { return GetOwnerGlobal(); }
   JSObject* WrapObject(JSContext* aCx,
