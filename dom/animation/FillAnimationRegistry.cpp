@@ -47,11 +47,23 @@ void FillAnimationRegistry::RegisterFillAnimation(
   Unused << mHashMap.putNew(AnimationIndices(aEffects), &aFillAnimation);
 }
 
+void FillAnimationRegistry::KeepFillAnimationAlive(
+    dom::FillAnimation& aFillAnimation) {
+  Unused << mPreservedAnimations.put(
+      RefPtr<dom::FillAnimation>(&aFillAnimation));
+}
+
 void FillAnimationRegistry::Compact() {
   for (auto iter = mHashMap.modIter(); !iter.done(); iter.next()) {
     // Drop any dangling weak references or canceled animations
     if (!iter.get().value() ||
         iter.get().value()->PlayState() == AnimationPlayState::Idle) {
+      iter.remove();
+    }
+  }
+  for (auto iter = mPreservedAnimations.modIter(); !iter.done(); iter.next()) {
+    // Stop keeping alive any FillAnimations that no longer need it
+    if (!iter.get()->ShouldKeepAlive()) {
       iter.remove();
     }
   }

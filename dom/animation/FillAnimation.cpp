@@ -76,6 +76,17 @@ JSObject* FillAnimation::WrapObject(JSContext* aCx,
   return fillAnimation.forget();
 }
 
+bool FillAnimation::ShouldKeepAlive() const {
+  // If we have no source effects, then we must have been canceled. We will
+  // therefore not be in the FillAnimationRegistry and there's no need to keep
+  // us alive.
+  if (!NumSourceEffects()) {
+    return false;
+  }
+
+  return false;
+}
+
 uint64_t FillAnimation::NumSourceEffects() const {
   if (!mEffect || !mEffect->AsFillEffect()) {
     return 0;

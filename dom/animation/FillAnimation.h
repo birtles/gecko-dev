@@ -45,6 +45,8 @@ class FillAnimation : public Animation,
   // CompactFillEffects it wraps.
   void Invalidate() { CancelNoUpdate(CancelMode::Invalidate); }
 
+  bool ShouldKeepAlive() const;
+
   uint64_t NumSourceEffects() const;
 };
 

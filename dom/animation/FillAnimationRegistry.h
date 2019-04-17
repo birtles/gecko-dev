@@ -25,8 +25,13 @@ class FillAnimationRegistry {
       const nsTArray<CompactFillEffect*>& aEffects);
   void RegisterFillAnimation(dom::FillAnimation& aFillAnimation,
                              const nsTArray<CompactFillEffect*>& aEffects);
-
+  void KeepFillAnimationAlive(dom::FillAnimation& aFillAnimation);
   void Compact();
+
+  friend void ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback&,
+                                          FillAnimationRegistry&, const char*,
+                                          uint32_t);
+  friend void ImplCycleCollectionUnlink(FillAnimationRegistry&);
 
  private:
   struct FillAnimationHasher {
@@ -42,7 +47,23 @@ class FillAnimationRegistry {
       HashMap<nsTArray<uint64_t>, WeakPtr<dom::FillAnimation>,
               FillAnimationHasher>;
   FillAnimationHashMap mHashMap;
+
+  // Animations we are keeping alive because they have been mutated
+  HashSet<RefPtr<dom::FillAnimation>> mPreservedAnimations;
 };
+
+inline void ImplCycleCollectionTraverse(
+    nsCycleCollectionTraversalCallback& aCallback, FillAnimationRegistry& tmp,
+    const char* aName, uint32_t aFlags) {
+  for (auto iter = tmp.mPreservedAnimations.iter(); !iter.done(); iter.next()) {
+    CycleCollectionNoteChild(aCallback, iter.get().get(),
+                             "mPreservedAnimations", aFlags);
+  }
+}
+
+inline void ImplCycleCollectionUnlink(FillAnimationRegistry& tmp) {
+  tmp.mPreservedAnimations.clear();
+}
 
 }  // namespace mozilla
 
