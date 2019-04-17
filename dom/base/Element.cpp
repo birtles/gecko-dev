@@ -3489,6 +3489,12 @@ void Element::GetAnimations(const AnimationFilter& filter,
     // important here.
     doc->FlushPendingNotifications(
         ChangesToFlush(FlushType::Style, false /* flush animations */));
+
+    FillAnimationRegistry* fillAnimationRegistry =
+        doc->GetFillAnimationRegistry();
+    if (fillAnimationRegistry) {
+      fillAnimationRegistry->Compact();
+    }
   }
 
   Element* elem = this;

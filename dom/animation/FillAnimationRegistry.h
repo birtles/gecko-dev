@@ -26,6 +26,8 @@ class FillAnimationRegistry {
   void RegisterFillAnimation(dom::FillAnimation& aFillAnimation,
                              const nsTArray<CompactFillEffect*>& aEffects);
 
+  void Compact();
+
  private:
   struct FillAnimationHasher {
     using Key = nsTArray<uint64_t>;

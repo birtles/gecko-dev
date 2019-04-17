@@ -47,6 +47,16 @@ void FillAnimationRegistry::RegisterFillAnimation(
   Unused << mHashMap.putNew(AnimationIndices(aEffects), &aFillAnimation);
 }
 
+void FillAnimationRegistry::Compact() {
+  for (auto iter = mHashMap.modIter(); !iter.done(); iter.next()) {
+    // Drop any dangling weak references or canceled animations
+    if (!iter.get().value() ||
+        iter.get().value()->PlayState() == AnimationPlayState::Idle) {
+      iter.remove();
+    }
+  }
+}
+
 /*static*/ HashNumber FillAnimationRegistry::FillAnimationHasher::hash(
     const Lookup& aLookup) {
   HashNumber result = 0;
