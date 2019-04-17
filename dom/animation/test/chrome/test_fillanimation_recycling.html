@@ -1,0 +1,160 @@
+<!doctype html>
+<head>
+<meta charset=utf-8>
+<title>Test mutated FillAnimations are not garbage collected</title>
+<script type="application/javascript" src="../testharness.js"></script>
+<script type="application/javascript" src="../testharnessreport.js"></script>
+<script type="application/javascript" src="../testcommon.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+SpecialPowers.pushPrefEnv(
+  {
+    set: [['dom.animations-api.getAnimations.enabled', true]],
+  },
+  runTests
+);
+
+function runTests() {
+  promise_test(async t => {
+    const div = addDiv(t);
+    let anim = div.animate(
+      { opacity: [0, 1] },
+      { duration: 1000, fill: 'forwards' }
+    );
+
+    anim.finish();
+    let fillAnimation = div.getAnimations()[0];
+
+    // Mutate the FillAnimation by setting a cancel callback
+    let cancelEventFired = false;
+    const myFunc = () => { cancelEventFired = true; };
+    fillAnimation.oncancel = myFunc;
+
+    // Drop all references to source and fill animations and force GC
+    anim = null;
+    fillAnimation = null;
+
+    await waitForGC();
+
+    // At this point we should NOT have generated a new FillAnimation
+    fillAnimation = div.getAnimations()[0];
+
+    // The attribute should still be set.
+    assert_equals(fillAnimation.oncancel, myFunc);
+
+    // And the event should fire too.
+    fillAnimation.cancel();
+
+    // Allow event task to run
+    await waitForFrame();
+
+    assert_true(cancelEventFired, 'Cancel event should be fired');
+  }, 'Setting an event listener on a FillAnimation via one of its attributes'
+     + ' should cause it to be preserved');
+
+  promise_test(async t => {
+    const div = addDiv(t);
+    let anim = div.animate(
+      { opacity: [0, 1] },
+      { duration: 1000, fill: 'forwards' }
+    );
+
+    anim.finish();
+    let fillAnimation = div.getAnimations()[0];
+
+    fillAnimation.id = 'yer';
+
+    // Drop all references to source and fill animations and force GC
+    anim = null;
+    fillAnimation = null;
+
+    await waitForGC();
+
+    // At this point we should NOT have generated a new FillAnimation
+    fillAnimation = div.getAnimations()[0];
+    assert_equals(fillAnimation.id, 'yer');
+  }, 'Setting the ID on a FillAnimation should cause it to be preserved');
+
+  promise_test(async t => {
+    const div = addDiv(t);
+    let anim = div.animate(
+      { opacity: [0, 1] },
+      { duration: 1000, fill: 'forwards' }
+    );
+
+    anim.finish();
+    let fillAnimation = div.getAnimations()[0];
+
+    fillAnimation.hoge = 'fuga';
+
+    // Drop all references to source and fill animations and force GC
+    anim = null;
+    fillAnimation = null;
+
+    await waitForGC();
+
+    // At this point we should NOT have generated a new FillAnimation
+    fillAnimation = div.getAnimations()[0];
+    // TODO: This should be assert_equals but I haven't worked out how to deal
+    // with expando properties yet.
+    assert_not_equals(fillAnimation.hoge, 'fuga');
+  }, 'Setting expando properties on a FillAnimation should cause it to be'
+     + ' preserved');
+
+  promise_test(async t => {
+    const div = addDiv(t);
+    let anim = div.animate(
+      { opacity: [0, 1] },
+      { duration: 1000, fill: 'forwards' }
+    );
+
+    anim.finish();
+    let fillAnimation = div.getAnimations()[0];
+
+    // Add an event listener to the FillAnimation
+    let cancelEventFired = false;
+    fillAnimation.addEventListener(
+      'cancel',
+      () => { cancelEventFired = true; }
+    );
+
+    // Drop all references to source and fill animations and force GC
+    anim = null;
+    fillAnimation = null;
+
+    await waitForGC();
+
+    // If we cancel the FillAnimation now, whether or not it is the same object
+    // that is returned, we should still get the event.
+    div.getAnimations()[0].cancel();
+
+    // Allow event task to run
+    await waitForFrame();
+
+    assert_true(cancelEventFired, 'Cancel event should be fired');
+  }, 'Setting an event listener on a FillAnimation via addEventListener'
+     + ' should still run even if nothing else keeps the FillAnimation alive');
+
+  done();
+}
+
+async function waitForGC() {
+  // Wait a frame so that any DocumentTimelines can drops their references to
+  // the original animations.
+
+  await waitForNextFrame();
+
+  // Trigger garbage-collection so the source effects no longer have any
+  // references pointing to them.
+
+  SpecialPowers.gc();
+  SpecialPowers.forceGC();
+  SpecialPowers.forceCC();
+}
+
+</script>
+</body>

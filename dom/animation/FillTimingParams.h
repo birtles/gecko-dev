@@ -15,11 +15,11 @@
 namespace mozilla {
 
 inline TimingParams FillTimingParams() {
-  return TimingParams(TimeDuration::Forever(),  // duration
-                      TimeDuration(),           // delay
-                      TimeDuration(),           // end-delay
-                      1.0f,                     // iterations
-                      0.0f,                     // iteration start
+  return TimingParams(TimeDuration(),  // duration
+                      TimeDuration(),  // delay
+                      TimeDuration(),  // end-delay
+                      1.0f,            // iterations
+                      0.0f,            // iteration start
                       dom::PlaybackDirection::Normal, dom::FillMode::Both,
                       Nothing());  // timing function
 }

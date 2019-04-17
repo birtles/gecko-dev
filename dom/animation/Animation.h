@@ -92,7 +92,7 @@ class Animation : public DOMEventTargetHelper,
       const Optional<AnimationTimeline*>& aTimeline, ErrorResult& aRv);
 
   void GetId(nsAString& aResult) const { aResult = mId; }
-  void SetId(const nsAString& aId);
+  virtual void SetId(const nsAString& aId);
 
   AnimationEffect* GetEffect() const { return mEffect; }
   void SetEffect(AnimationEffect* aEffect, ErrorResult& aRv);

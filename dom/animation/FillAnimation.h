@@ -46,8 +46,13 @@ class FillAnimation : public Animation,
   void Invalidate() { CancelNoUpdate(CancelMode::Invalidate); }
 
   bool ShouldKeepAlive() const;
+  void SetId(const nsAString& aId) override;
+  void EventListenerAdded(nsAtom* aType) override;
 
   uint64_t NumSourceEffects() const;
+
+ private:
+  void MaybeKeepAlive();
 };
 
 }  // namespace dom

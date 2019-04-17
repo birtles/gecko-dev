@@ -8,6 +8,7 @@
 
 #include "mozilla/AnimationTarget.h"  // For ToOwningAnimationTarget
 #include "mozilla/dom/FillAnimationBinding.h"
+#include "mozilla/FillAnimationRegistry.h"
 #include "mozilla/FillEffect.h"
 
 namespace mozilla {
@@ -84,7 +85,25 @@ bool FillAnimation::ShouldKeepAlive() const {
     return false;
   }
 
+  if (mListenerManager && mListenerManager->HasListeners()) {
+    return true;
+  }
+
+  if (!mId.IsEmpty()) {
+    return true;
+  }
+
   return false;
+}
+
+void FillAnimation::SetId(const nsAString& aId) {
+  Animation::SetId(aId);
+  MaybeKeepAlive();
+}
+
+void FillAnimation::EventListenerAdded(nsAtom* aType) {
+  Animation::EventListenerAdded(aType);
+  MaybeKeepAlive();
 }
 
 uint64_t FillAnimation::NumSourceEffects() const {
@@ -93,6 +112,23 @@ uint64_t FillAnimation::NumSourceEffects() const {
   }
 
   return mEffect->AsFillEffect()->NumSourceEffects();
+}
+
+void FillAnimation::MaybeKeepAlive() {
+  if (!mEffect || !mEffect->AsKeyframeEffect()) {
+    return;
+  }
+
+  if (!ShouldKeepAlive()) {
+    return;
+  }
+
+  Document* doc = mEffect->AsKeyframeEffect()->GetRenderedDocument();
+  if (!doc) {
+    return;
+  }
+
+  doc->GetOrCreateFillAnimationRegistry()->KeepFillAnimationAlive(*this);
 }
 
 }  // namespace dom
