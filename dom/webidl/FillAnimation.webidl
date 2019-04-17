@@ -12,4 +12,5 @@
 
 [Func="Document::IsWebAnimationsGetAnimationsEnabled"]
 interface FillAnimation : Animation {
+  [ChromeOnly] readonly attribute unsigned long numSourceEffects;
 };

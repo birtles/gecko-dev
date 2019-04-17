@@ -41,6 +41,8 @@ class FillAnimation : public Animation {
   // Cancels the FillAnimation but in such a way that it doesn't cancel all the
   // CompactFillEffects it wraps.
   void Invalidate() { CancelNoUpdate(CancelMode::Invalidate); }
+
+  uint64_t NumSourceEffects() const;
 };
 
 }  // namespace dom

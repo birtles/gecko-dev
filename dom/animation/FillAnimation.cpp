@@ -76,5 +76,13 @@ JSObject* FillAnimation::WrapObject(JSContext* aCx,
   return fillAnimation.forget();
 }
 
+uint64_t FillAnimation::NumSourceEffects() const {
+  if (!mEffect || !mEffect->AsFillEffect()) {
+    return 0;
+  }
+
+  return mEffect->AsFillEffect()->NumSourceEffects();
+}
+
 }  // namespace dom
 }  // namespace mozilla

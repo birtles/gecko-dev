@@ -37,6 +37,8 @@ class FillEffect : public dom::KeyframeEffect {
   void GetProperties(nsTArray<dom::AnimationPropertyDetails>& aProperties,
                      ErrorResult& aRv) const override;
 
+  uint64_t NumSourceEffects() const { return mSourceEffects.Length(); }
+
  private:
   // The effects from which we take our values.
   //
