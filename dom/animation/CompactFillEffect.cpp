@@ -98,9 +98,17 @@ bool CompactFillEffect::CombineWith(CompactFillEffect& aOther) {
       GetAnimation() && aOther.GetAnimation() &&
           GetAnimation()->GetTimeline() == aOther.GetAnimation()->GetTimeline(),
       "Should only combine with an effect with the same timeline");
+  MOZ_ASSERT(
+      GetAnimation()->EffectiveAnimationIndex() <
+          aOther.GetAnimation()->EffectiveAnimationIndex(),
+      "Should be combined with something later in the global animation list");
 
-  // TODO: This needs to check that there can't possibly be any animation
-  // between ours and that of |aOther| that might come back into play.
+  // Check that there can't possibly be any animation between ours and that of
+  // |aOther| that might come back into play.
+  if (GetAnimation()->GetNextAnimation() &&
+      GetAnimation()->GetNextAnimation() != aOther.GetAnimation()) {
+    return false;
+  }
 
   mFillSnapshot.AppendElements(std::move(aOther.mFillSnapshot));
 

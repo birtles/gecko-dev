@@ -351,6 +351,8 @@ class Animation : public DOMEventTargetHelper,
     mOverrideAnimationIndex = aAnimation.EffectiveAnimationIndex();
   }
   void SwapListPosition(Animation& aOther);
+  void RemoveFromGlobalAnimationList();
+  const Animation* GetNextAnimation() const { return mNextAnimation; }
 
   /**
    * Returns the level at which the effect(s) associated with this Animation
@@ -541,7 +543,6 @@ class Animation : public DOMEventTargetHelper,
   Document* GetTimelineDocument() const;
 
   void AppendToGlobalAnimationList();
-  void RemoveFromGlobalAnimationList();
 
   RefPtr<AnimationTimeline> mTimeline;
   RefPtr<AnimationEffect> mEffect;

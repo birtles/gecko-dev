@@ -212,7 +212,20 @@ bool IsMarkupAnimation(T* aAnimation) {
     }
 
     if (previousEffect->CombineWith(*compactFillEffect)) {
+      // The animations associated with |effect| and |previousEffect| will have
+      // different animation indices so which should we use for the animation of
+      // the combined result?
+      //
+      // The answer is, it doesn't matter. CombineWith above will ensure there
+      // are no interleaving animations in existence so it won't make any
+      // difference as far as compositing, getAnimations(), or event dispatch
+      // order is concerned.
       aEffectSet.RemoveEffect(*effect);
+
+      // We need to make sure the effect's animation no longer exists in the
+      // global animation list or else it will prevent us from combining
+      // |previousEffect| repeatedly.
+      effect->GetAnimation()->RemoveFromGlobalAnimationList();
     } else {
       previousEffect = compactFillEffect;
     }
