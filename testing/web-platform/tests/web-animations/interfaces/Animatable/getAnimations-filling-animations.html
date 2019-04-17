@@ -256,5 +256,128 @@ test(t => {
   assert_equals(div1.getAnimations().length, 3);
 }, 'Splits a combined FillAnimation if an interleaving animation appears');
 
+test(t => {
+  const div = createDiv(t);
+  const animA = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  const animB = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animA.finish();
+  animB.finish();
+
+  assert_equals(div.getAnimations().length, 1);
+  const fillAnimAB = div.getAnimations()[0];
+  assert_equals(fillAnimAB, div.getAnimations()[0],
+                'The same FillAnimation object should be returned each time');
+
+  const animC = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animC.finish();
+
+  assert_equals(div.getAnimations().length, 1);
+  const fillAnimABC = div.getAnimations()[0];
+  assert_not_equals(fillAnimABC, fillAnimAB,
+                    'A new FillAnimation object should be returned when the set'
+                    + ' of underlying animations changes (by adding)');
+
+  animC.cancel();
+  assert_equals(fillAnimAB, div.getAnimations()[0],
+                'After canceling the additional animation, the previously'
+                + ' returned animation should be returned');
+
+  animA.cancel();
+  assert_not_equals(fillAnimAB, div.getAnimations()[0],
+                    'After canceling one of the original animations, a new'
+                    + ' FillAnimation object should be returned');
+}, 'Returns the same FillAnimation for the same set of underlying animations');
+
+test(t => {
+  const divA = createDiv(t);
+  const divB = createDiv(t);
+  const animation = divA.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animation.finish();
+
+  const fillAnimationA = divA.getAnimations()[0];
+
+  animation.effect.target = divB;
+
+  // FillAnimation on original div should be canceled
+  assert_equals(divA.getAnimations().length, 0);
+  assert_equals(fillAnimationA.playState, 'idle');
+
+  // A new FillAnimation should be generated on the new target div
+  assert_equals(divB.getAnimations().length, 1);
+  const fillAnimationB = divB.getAnimations()[0];
+  assert_not_equals(fillAnimationA, fillAnimationB);
+  assert_class_string(fillAnimationB, 'FillAnimation');
+}, 'Returns a new FillAnimation if the target element of the corresponding'
+   + ' Animation is set to a different element');
+
+test(t => {
+  const divA = createDiv(t);
+  const animation = divA.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animation.finish();
+  const fillAnimationA = divA.getAnimations()[0];
+
+  const divB = createDiv(t);
+  const effectB = new KeyframeEffect(divB, null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animation.effect = effectB;
+
+  // FillAnimation on original div should be canceled
+  assert_equals(divA.getAnimations().length, 0);
+  assert_equals(fillAnimationA.playState, 'idle');
+
+  // A new FillAnimation should be generated on the new target div
+  assert_equals(divB.getAnimations().length, 1);
+  const fillAnimationB = divB.getAnimations()[0];
+  assert_not_equals(fillAnimationA, fillAnimationB);
+  assert_class_string(fillAnimationB, 'FillAnimation');
+  assert_equals(fillAnimationB.playState, 'running');
+}, 'Returns a new FillAnimation if the effect of the corresponding Animation'
+   + ' is updated to an effect with a different target element');
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animation.finish();
+  const fillAnimationA = div.getAnimations()[0];
+
+  const effectB = new KeyframeEffect(div, null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animation.effect = effectB;
+
+  // A new FillAnimation should be generated due to the change in effect
+  // identity.
+  assert_equals(div.getAnimations().length, 1);
+  const fillAnimationB = div.getAnimations()[0];
+  assert_not_equals(fillAnimationA, fillAnimationB);
+  assert_class_string(fillAnimationB, 'FillAnimation');
+  assert_equals(fillAnimationB.playState, 'running');
+
+  // The original FillAnimation should be canceled
+  assert_equals(fillAnimationA.playState, 'idle');
+}, 'Returns a new FillAnimation if the effect of the corresponding'
+   + ' Animation is updated to an effect with the same target element');
+
 </script>
 </body>
