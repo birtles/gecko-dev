@@ -3534,18 +3534,28 @@ void Element::GetAnimations(const AnimationFilter& filter,
 }
 
 static void FlushFillingEffects(nsTArray<CompactFillEffect*>& aFillingEffects,
-                                nsTArray<RefPtr<Animation>>& aAnimations) {
+                                nsTArray<RefPtr<Animation>>& aAnimations,
+                                FillAnimationRegistry& aFillAnimationRegistry) {
   if (aFillingEffects.IsEmpty()) {
     return;
   }
 
-  aAnimations.AppendElement(FillAnimation::Create(aFillingEffects));
+  RefPtr<FillAnimation> fillAnimation =
+      aFillAnimationRegistry.GetFillAnimationForEffects(aFillingEffects);
+  if (!fillAnimation) {
+    fillAnimation = FillAnimation::Create(aFillingEffects);
+    aFillAnimationRegistry.RegisterFillAnimation(*fillAnimation,
+                                                 aFillingEffects);
+  }
+
+  aAnimations.AppendElement(std::move(fillAnimation));
   aFillingEffects.Clear();
 }
 
 static void GetAnimationsWithFillEffects(
     Element* aElement, PseudoStyleType aPseudoType, EffectSet& aEffectSet,
-    nsTArray<RefPtr<Animation>>& aAnimations) {
+    nsTArray<RefPtr<Animation>>& aAnimations,
+    FillAnimationRegistry& aFillAnimationRegistry) {
   nsAtom* pseudo = PseudoStyle::IsPseudoElement(aPseudoType)
                        ? nsCSSPseudoElements::GetPseudoAtom(aPseudoType)
                        : nullptr;
@@ -3574,18 +3584,19 @@ static void GetAnimationsWithFillEffects(
       if (!fillingEffects.IsEmpty() &&
           fillingEffects.LastElement()->GetAnimation()->GetTimeline() !=
               effect->GetAnimation()->GetTimeline()) {
-        FlushFillingEffects(fillingEffects, aAnimations);
+        FlushFillingEffects(fillingEffects, aAnimations,
+                            aFillAnimationRegistry);
       }
       fillingEffects.AppendElement(effect->AsCompactFillEffect());
       continue;
     }
 
-    FlushFillingEffects(fillingEffects, aAnimations);
+    FlushFillingEffects(fillingEffects, aAnimations, aFillAnimationRegistry);
 
     aAnimations.AppendElement(effect->GetAnimation());
   }
 
-  FlushFillingEffects(fillingEffects, aAnimations);
+  FlushFillingEffects(fillingEffects, aAnimations, aFillAnimationRegistry);
 }
 
 /* static */
@@ -3610,7 +3621,9 @@ void Element::GetAnimationsUnsorted(Element* aElement,
   // combine adjacent effects into FillAnimations.
 
   if (effects->MayHaveCompactFillEffects()) {
-    GetAnimationsWithFillEffects(aElement, aPseudoType, *effects, aAnimations);
+    GetAnimationsWithFillEffects(
+        aElement, aPseudoType, *effects, aAnimations,
+        *aElement->OwnerDoc()->GetOrCreateFillAnimationRegistry());
     return;
   }
 

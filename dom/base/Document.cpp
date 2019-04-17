@@ -61,6 +61,7 @@
 #include "mozilla/BasicEvents.h"
 #include "mozilla/EventListenerManager.h"
 #include "mozilla/EventStateManager.h"
+#include "mozilla/FillAnimationRegistry.h"
 #include "mozilla/FullscreenChange.h"
 #include "mozilla/PendingAnimationTracker.h"
 
@@ -6205,6 +6206,14 @@ PendingAnimationTracker* Document::GetOrCreatePendingAnimationTracker() {
   }
 
   return mPendingAnimationTracker;
+}
+
+FillAnimationRegistry* Document::GetOrCreateFillAnimationRegistry() {
+  if (!mFillAnimationRegistry) {
+    mFillAnimationRegistry = MakeUnique<mozilla::FillAnimationRegistry>();
+  }
+
+  return mFillAnimationRegistry.get();
 }
 
 /**

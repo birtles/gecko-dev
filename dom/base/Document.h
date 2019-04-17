@@ -135,6 +135,7 @@ class Encoding;
 class ErrorResult;
 class EventStates;
 class EventListenerManager;
+class FillAnimationRegistry;
 class FullscreenExit;
 class FullscreenRequest;
 class PendingAnimationTracker;
@@ -2661,6 +2662,19 @@ class Document : public nsINode,
    */
   void SuppressEventHandling(uint32_t aIncrease = 1);
 
+  // Gets the registry used to ensure we return the same FillAnimation from
+  // GetAnimations (when called on on either this Document or one of its
+  // Elements) for the same set of underlying animations.
+  // If no FillAnimations have been generated for this Document, the result will
+  // be nullptr.
+  mozilla::FillAnimationRegistry* GetFillAnimationRegistry() {
+    return mFillAnimationRegistry.get();
+  }
+
+  // As with GetFillAnimationRegistry but creates the registry if it does not
+  // already exist. As a result, the return value will never be nullptr.
+  mozilla::FillAnimationRegistry* GetOrCreateFillAnimationRegistry();
+
   /**
    * Unsuppress event handling.
    * @param aFireEvents If true, delayed events (focus/blur) will be fired
@@ -4594,6 +4608,10 @@ class Document : public nsINode,
   // Tracker for animations that are waiting to start.
   // nullptr until GetOrCreatePendingAnimationTracker is called.
   RefPtr<PendingAnimationTracker> mPendingAnimationTracker;
+
+  // Registry for returned FillAnimations so that we return the same
+  // FillAnimation for the same set of underlying animations.
+  UniquePtr<mozilla::FillAnimationRegistry> mFillAnimationRegistry;
 
   // A document "without a browsing context" that owns the content of
   // HTMLTemplateElement.
