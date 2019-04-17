@@ -186,7 +186,8 @@ bool IsMarkupAnimation(T* aAnimation) {
 #endif
 }
 
-/*static*/ void CompactAnimationUtils::CombineEffects(EffectSet& aEffectSet) {
+/*static*/ void CompactAnimationUtils::CombineEffects(
+    EffectSet& aEffectSet, const ComputedStyle* aStyle) {
   if (!aEffectSet.MayHaveCompactFillEffects() ||
       !aEffectSet.MayNeedCompacting()) {
     return;
@@ -198,6 +199,8 @@ bool IsMarkupAnimation(T* aAnimation) {
   }
   effects.Sort(KeyframeEffectComparator());
 
+  nsTArray<CompactFillEffect*> updatedEffects;
+
   CompactFillEffect* previousEffect = nullptr;
   for (KeyframeEffect* effect : effects) {
     CompactFillEffect* compactFillEffect = effect->AsCompactFillEffect();
@@ -206,12 +209,11 @@ bool IsMarkupAnimation(T* aAnimation) {
       continue;
     }
 
-    if (!previousEffect) {
-      previousEffect = compactFillEffect;
-      continue;
-    }
-
-    if (previousEffect->CombineWith(*compactFillEffect)) {
+    if (previousEffect && previousEffect->CombineWith(*compactFillEffect)) {
+      if (updatedEffects.IsEmpty() ||
+          updatedEffects.LastElement() != previousEffect) {
+        updatedEffects.AppendElement(previousEffect);
+      }
       // The animations associated with |effect| and |previousEffect| will have
       // different animation indices so which should we use for the animation of
       // the combined result?
@@ -229,6 +231,12 @@ bool IsMarkupAnimation(T* aAnimation) {
     } else {
       previousEffect = compactFillEffect;
     }
+  }
+
+  // We compact the snapshots out-of-band as otherwise this operation would be
+  // O(n^2) when we have a bunch of effects that cannot be reduced further.
+  for (CompactFillEffect* effect : updatedEffects) {
+    effect->ReduceSnapshot(aStyle);
   }
 }
 

@@ -3544,8 +3544,14 @@ static void FlushFillingEffects(nsTArray<CompactFillEffect*>& aFillingEffects,
 }
 
 static void GetAnimationsWithFillEffects(
-    EffectSet& aEffectSet, nsTArray<RefPtr<Animation>>& aAnimations) {
-  CompactAnimationUtils::CombineEffects(aEffectSet);
+    Element* aElement, PseudoStyleType aPseudoType, EffectSet& aEffectSet,
+    nsTArray<RefPtr<Animation>>& aAnimations) {
+  nsAtom* pseudo = PseudoStyle::IsPseudoElement(aPseudoType)
+                       ? nsCSSPseudoElements::GetPseudoAtom(aPseudoType)
+                       : nullptr;
+  RefPtr<ComputedStyle> sc =
+      nsComputedDOMStyle::GetComputedStyleNoFlush(aElement, pseudo);
+  CompactAnimationUtils::CombineEffects(aEffectSet, sc);
 
   nsTArray<KeyframeEffect*> sortedEffects;
   for (KeyframeEffect* effect : aEffectSet) {
@@ -3604,7 +3610,7 @@ void Element::GetAnimationsUnsorted(Element* aElement,
   // combine adjacent effects into FillAnimations.
 
   if (effects->MayHaveCompactFillEffects()) {
-    GetAnimationsWithFillEffects(*effects, aAnimations);
+    GetAnimationsWithFillEffects(aElement, aPseudoType, *effects, aAnimations);
     return;
   }
 

@@ -14,6 +14,7 @@
 SpecialPowers.pushPrefEnv(
   {
     set: [['dom.animations-api.getAnimations.enabled', true]],
+    set: [['dom.animations-api.implicit-keyframes.enabled', true]],
   },
   runTests
 );
@@ -135,11 +136,290 @@ function runTests() {
   }, 'Two non-adjacent source effects are NOT combined until the interleaving'
      + ' animations are dropped');
 
+  promise_test(async t => {
+    const div = addDiv(t);
+
+    let animA = div.animate(
+      { opacity: [0, 1] },
+      {
+        duration: 1000,
+        fill: 'forwards',
+      }
+    );
+    let animB = div.animate(
+      { opacity: [0.5, 0.7] },
+      {
+        duration: 1000,
+        fill: 'forwards',
+      }
+    );
+
+    animA.finish();
+    animB.finish();
+
+    let fillAnimation = div.getAnimations()[0];
+    assert_properties_equal(
+      fillAnimation.effect.getProperties(),
+      [
+        {
+          property: 'opacity',
+          values: [
+            valueFormat(0, '1', 'replace', 'fixed(1)'),
+            valueFormat(1, '1', 'replace'),
+          ],
+        },
+        {
+          property: 'opacity',
+          values: [
+            valueFormat(0, '0.7', 'replace', 'fixed(1)'),
+            valueFormat(1, '0.7', 'replace'),
+          ],
+        },
+      ],
+      'Should initially track both property sets separately'
+    );
+
+    animA = null;
+    animB = null;
+    fillAnimation = null;
+
+    await waitForGC();
+
+    fillAnimation = div.getAnimations()[0];
+    assert_properties_equal(
+      fillAnimation.effect.getProperties(),
+      [
+        {
+          property: 'opacity',
+          values: [
+            valueFormat(0, '0.7', 'replace', 'fixed(1)'),
+            valueFormat(1, '0.7', 'replace'),
+          ],
+        },
+      ],
+      'Should drop the replaced set of values after combining'
+    );
+  }, 'When combining effects, replaced properties are dropped');
+
+  promise_test(async t => {
+    const div = addDiv(t);
+
+    let animA = div.animate(
+      { opacity: [0, 1] },
+      {
+        duration: 1000,
+        fill: 'forwards',
+      }
+    );
+    let animB = div.animate(
+      { opacity: [0.5, 0.7] },
+      {
+        duration: 1000,
+        fill: 'forwards',
+        composite: 'add',
+      }
+    );
+
+    animA.finish();
+    animB.finish();
+
+    animA = null;
+    animB = null;
+
+    await waitForGC();
+
+    const fillAnimation = div.getAnimations()[0];
+    assert_properties_equal(
+      fillAnimation.effect.getProperties(),
+      [
+        {
+          property: 'opacity',
+          values: [
+            valueFormat(0, '1', 'replace', 'fixed(1)'),
+            valueFormat(1, '1', 'replace'),
+          ],
+        },
+        {
+          property: 'opacity',
+          values: [
+            valueFormat(0, '0.7', 'add', 'fixed(1)'),
+            valueFormat(1, '0.7', 'add'),
+          ],
+        },
+      ],
+      'Should keep both sets of values after combining'
+    );
+  }, 'When combining effects, added properties are NOT dropped');
+
+  promise_test(async t => {
+    const div = addDiv(t);
+
+    // We expect this to be a very common use case of implicit keyframes:
+    // implicit from to some absolute value and fill forwards from there.
+
+    let animA = div.animate(
+      { left: '100px', top: '100px' },
+      {
+        duration: 1000,
+        fill: 'forwards',
+      }
+    );
+    let animB = div.animate(
+      { left: '200px', top: '200px' },
+      {
+        duration: 1000,
+        fill: 'forwards',
+      }
+    );
+
+    animA.finish();
+    animB.finish();
+
+    animA = null;
+    animB = null;
+
+    await waitForGC();
+
+    const fillAnimation = div.getAnimations()[0];
+    assert_equals(
+      fillAnimation.effect.getProperties().length,
+      2,
+      'Should be only one set of properties for each CSS property'
+    );
+  }, 'When combining effects with implicit from-keyframes, replaced properties'
+     + ' are dropped if the effect fills at the end of the interval');
+
+  promise_test(async t => {
+    const div = addDiv(t);
+
+    // Similar to the previous test but for an implicit-to value.
+    // That's much less likely to be used in conjuction with 'fill: forwards'
+    // but given that it's easy to optimize filling nothing, let's check we do.
+
+    let animA = div.animate(
+      [{ offset: 0, left: '100px', top: '100px' }],
+      {
+        duration: 1000,
+        fill: 'forwards',
+      }
+    );
+    let animB = div.animate(
+      [{ offset: 0, left: '200px', top: '200px' }],
+      {
+        duration: 1000,
+        fill: 'forwards',
+      }
+    );
+
+    animA.finish();
+    animB.finish();
+
+    animA = null;
+    animB = null;
+
+    await waitForGC();
+
+    const fillAnimation = div.getAnimations()[0];
+    assert_equals(
+      fillAnimation.effect.getProperties().length,
+      2,
+      'Should be only one set of properties for each CSS property'
+    );
+  }, 'When combining effects with implicit to-keyframes, replaced properties'
+     + ' are dropped if the effect fills at the end of the interval');
+
+  promise_test(async t => {
+    const div = addDiv(t);
+
+    let animA = div.animate(
+      [{ offset: 0, left: '100px', top: '100px' }],
+      {
+        duration: 1000,
+        fill: 'forwards',
+      }
+    );
+    let animB = div.animate(
+      [{ offset: 0, left: '200px', top: '200px' }],
+      {
+        duration: 1000,
+        fill: 'forwards',
+        iterations: 0.5,
+      }
+    );
+
+    animA.finish();
+    animB.finish();
+
+    animA = null;
+    animB = null;
+
+    await waitForGC();
+
+    const fillAnimation = div.getAnimations()[0];
+    assert_equals(
+      fillAnimation.effect.getProperties().length,
+      4,
+      'Should have two sets of properties for each CSS property'
+    );
+  }, 'When combining effects with implicit keyframes, properties are not'
+     + ' dropped if the effect fills mid-interval');
+
+  promise_test(async t => {
+    const div = addDiv(t);
+
+    // The test case is based on the test at https://greensock.com/js/speed.html
+
+    const numAnimations = 20;
+    const centerX = 400;
+    const centerY = 500;
+    const radius = Math.sqrt(centerX * centerX + centerY * centerY);
+
+    for (let i = 0; i < numAnimations; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const anim = div.animate(
+        [
+          {
+            left: centerX + 'px',
+            top: centerY + 'px',
+            width: '1px',
+            height: '1px',
+          },
+          {
+            left: Math.cos(angle) * radius + centerX + 'px',
+            top: Math.sin(angle) * radius + centerY + 'px',
+            width: '32px',
+            height: '32px',
+          },
+        ],
+        {
+          duration: 750,
+          fill: 'forwards',
+          easing: 'cubic-bezier(0.550, 0.055, 0.675, 0.190)',
+        }
+      );
+      anim.finish();
+    }
+
+    await waitForGC();
+
+    const fillAnimation = div.getAnimations()[0];
+    assert_equals(
+      fillAnimation.numSourceEffects,
+      1,
+      'Should have only one source effect'
+    );
+    assert_equals(
+      fillAnimation.effect.getProperties().length,
+      4,
+      'Should be only one set of properties for each CSS property'
+    );
+  }, 'When repeatedly generating animations, they are combined iteratively');
+
   done();
 }
 
 async function waitForGC() {
-  // Wait a frame so that any DocumentTimelines can drops their references to
+  // Wait a frame so that any DocumentTimelines can drop their references to
   // the original animations.
 
   await waitForNextFrame();

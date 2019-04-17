@@ -7,10 +7,12 @@
 #include "CompactFillEffect.h"
 
 #include "mozilla/AnimationTarget.h"  // For ToOwningAnimationTarget
+#include "mozilla/dom/BaseKeyframeTypesBinding.h"  // For CompositeOperation
 #include "mozilla/dom/FillAnimation.h"
 #include "mozilla/FillTimingParams.h"
 #include "mozilla/KeyframeEffectParams.h"
 #include "nsContentUtils.h"
+#include "nsCSSPropertyIDSet.h"
 
 namespace mozilla {
 
@@ -113,6 +115,53 @@ bool CompactFillEffect::CombineWith(CompactFillEffect& aOther) {
   mFillSnapshot.AppendElements(std::move(aOther.mFillSnapshot));
 
   return true;
+}
+
+static bool PropertyFullyReplaces(const FillPropertySnapshot& aSnapshot) {
+  if (aSnapshot.mToValue.mComposite != dom::CompositeOperation::Replace) {
+    return false;
+  }
+
+  if (aSnapshot.mFromValue &&
+      aSnapshot.mFromValue->mComposite != dom::CompositeOperation::Replace) {
+    return false;
+  }
+
+  // If we are sampling mid-interval and one of our endpoints value is an
+  // implicit value, we don't fully replace the underlying value.
+  if (aSnapshot.mPortion != 1.0 && aSnapshot.mPortion != 0.0 &&
+      (!aSnapshot.mFromValue || !aSnapshot.mFromValue->mSpecifiedValue ||
+       !aSnapshot.mToValue.mSpecifiedValue)) {
+    return false;
+  }
+
+  return true;
+}
+
+void CompactFillEffect::ReduceSnapshot(const ComputedStyle* aStyle) {
+  // Reduce the snapshot by dropping any overlapping properties where the
+  // property is fully replaced.
+  nsCSSPropertyIDSet mReplacedProperties;
+  for (size_t i = mFillSnapshot.Length(); i > 0; --i) {
+    const FillPropertySnapshot& snapshot = mFillSnapshot[i - 1];
+    if (mReplacedProperties.HasProperty(snapshot.mProperty)) {
+      mFillSnapshot.RemoveElementAt(i - 1);
+      continue;
+    }
+
+    if (PropertyFullyReplaces(snapshot)) {
+      mReplacedProperties.AddProperty(snapshot.mProperty);
+    }
+  }
+
+  // It's not strictly necessary to re-build the properties since the visual
+  // result should not change. However, we currently test the above reducing
+  // code by inspecting the properties (exposed by the attached FillEffect) so
+  // when this is called from GetAnimations() we pass along the computed style
+  // and update the properties here.
+  if (aStyle) {
+    UpdateProperties(aStyle);
+  }
 }
 
 nsTArray<AnimationProperty> CompactFillEffect::BuildProperties(

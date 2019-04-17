@@ -9,6 +9,8 @@
 
 namespace mozilla {
 
+class ComputedStyle;
+
 namespace dom {
 class Animation;
 }
@@ -18,7 +20,8 @@ class CompactAnimationUtils {
   static bool ShouldCompact(const dom::Animation& aAnimation);
   static void CompactAnimation(dom::Animation& aAnimation);
   static void RestoreAnimation(dom::Animation& aAnimation);
-  static void CombineEffects(EffectSet& aEffectSet);
+  static void CombineEffects(EffectSet& aEffectSet,
+                             const ComputedStyle* aStyle = nullptr);
 };
 
 }  // namespace mozilla

@@ -35,6 +35,7 @@ class CompactFillEffect : public dom::KeyframeEffect {
 
   bool CanBeCombined() const;
   bool CombineWith(CompactFillEffect& aOther);
+  void ReduceSnapshot(const ComputedStyle* aStyle = nullptr);
 
  protected:
   nsTArray<AnimationProperty> BuildProperties(
