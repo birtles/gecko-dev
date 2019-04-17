@@ -103,7 +103,31 @@ bool PropertyValuePair::operator==(const PropertyValuePair& aOther) const {
 
 namespace dom {
 
-NS_IMPL_CYCLE_COLLECTION_INHERITED(KeyframeEffect, AnimationEffect, mTarget)
+NS_IMPL_CYCLE_COLLECTION_CLASS(KeyframeEffect)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(KeyframeEffect, AnimationEffect)
+  if (tmp->mTarget && tmp->mTarget->mElement) {
+    EffectSet* effectSet = EffectSet::GetEffectSet(tmp->mTarget->mElement,
+                                                   tmp->mTarget->mPseudoType);
+    if (effectSet) {
+      // If:
+      //
+      // - we are a fill effect, OR
+      // - we are an original effect linked to a CompactFillEffect
+      //
+      // it's possible our associated CompactFillEffect might now be able to be
+      // combined with others.
+      if (tmp->AsFillEffect() ||
+          (tmp->mLinkedEffect && !tmp->AsCompactFillEffect())) {
+        effectSet->SetMayNeedCompacting();
+      }
+    }
+  }
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mTarget)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(KeyframeEffect,
+                                                  AnimationEffect)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mTarget)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(KeyframeEffect, AnimationEffect)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END

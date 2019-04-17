@@ -18,6 +18,7 @@ class CompactAnimationUtils {
   static bool ShouldCompact(const dom::Animation& aAnimation);
   static void CompactAnimation(dom::Animation& aAnimation);
   static void RestoreAnimation(dom::Animation& aAnimation);
+  static void CombineEffects(EffectSet& aEffectSet);
 };
 
 }  // namespace mozilla

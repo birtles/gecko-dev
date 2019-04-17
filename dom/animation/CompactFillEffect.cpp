@@ -67,6 +67,46 @@ void CompactFillEffect::UpdateFill(FillSnapshot&& aFill,
   }
 }
 
+bool CompactFillEffect::CanBeCombined() const {
+  if (mLinkedEffect) {
+    return false;
+  }
+
+  if (!mReferencingEffects.IsEmpty()) {
+    for (KeyframeEffect* effect : mReferencingEffects) {
+      if (effect) {
+        return false;
+      }
+    }
+    // Given that we know there are no live pointers referencing effects now,
+    // clear the array so we can avoid searching it again.
+    const_cast<CompactFillEffect*>(this)->mReferencingEffects.Clear();
+  }
+
+  return true;
+}
+
+bool CompactFillEffect::CombineWith(CompactFillEffect& aOther) {
+  MOZ_ASSERT(CanBeCombined(),
+             "Should only combine if we ourselves can be combined");
+  MOZ_ASSERT(
+      aOther.CanBeCombined(),
+      "Should only combine if the effect to combine with can be combined");
+  MOZ_ASSERT(GetTarget() == aOther.GetTarget(),
+             "Should only combine with an effect with the same target");
+  MOZ_ASSERT(
+      GetAnimation() && aOther.GetAnimation() &&
+          GetAnimation()->GetTimeline() == aOther.GetAnimation()->GetTimeline(),
+      "Should only combine with an effect with the same timeline");
+
+  // TODO: This needs to check that there can't possibly be any animation
+  // between ours and that of |aOther| that might come back into play.
+
+  mFillSnapshot.AppendElements(std::move(aOther.mFillSnapshot));
+
+  return true;
+}
+
 nsTArray<AnimationProperty> CompactFillEffect::BuildProperties(
     const ComputedStyle* aComputedValues) {
   MOZ_ASSERT(aComputedValues);

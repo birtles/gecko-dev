@@ -17,7 +17,7 @@ class ComputedStyle;
 
 class CompactFillEffect : public dom::KeyframeEffect {
  protected:
-  virtual ~CompactFillEffect() {}
+  ~CompactFillEffect() override = default;
 
  public:
   explicit CompactFillEffect(dom::KeyframeEffect& aOriginalEffect);
@@ -32,6 +32,9 @@ class CompactFillEffect : public dom::KeyframeEffect {
   // Recompute the effect's stored fill style.
   void UpdateFill(FillSnapshot&& aFill, nsChangeHint aCumulativeChangeHint,
                   const ComputedStyle* aStyle);
+
+  bool CanBeCombined() const;
+  bool CombineWith(CompactFillEffect& aOther);
 
  protected:
   nsTArray<AnimationProperty> BuildProperties(

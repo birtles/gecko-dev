@@ -21,6 +21,7 @@ namespace mozilla {
 
 class CompactFillEffect;
 struct ElementPropertyTransition;
+class FillEffect;
 
 namespace dom {
 
@@ -36,8 +37,9 @@ class AnimationEffect : public nsISupports, public nsWrapperCache {
 
   AnimationEffect(Document* aDocument, TimingParams&& aTiming);
 
-  virtual KeyframeEffect* AsKeyframeEffect() { return nullptr; }
+  virtual FillEffect* AsFillEffect() { return nullptr; }
   virtual CompactFillEffect* AsCompactFillEffect() { return nullptr; }
+  virtual KeyframeEffect* AsKeyframeEffect() { return nullptr; }
 
   virtual ElementPropertyTransition* AsTransition() { return nullptr; }
   virtual const ElementPropertyTransition* AsTransition() const {

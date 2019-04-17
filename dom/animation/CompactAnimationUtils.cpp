@@ -181,4 +181,39 @@ bool IsMarkupAnimation(T* aAnimation) {
 #endif
 }
 
+/*static*/ void CompactAnimationUtils::CombineEffects(EffectSet& aEffectSet) {
+  if (!aEffectSet.MayHaveCompactFillEffects() ||
+      !aEffectSet.MayNeedCompacting()) {
+    return;
+  }
+
+  // Copy the effect pointers to an array since we need to modify the EffectSet
+  // while iterating it and the way we currently expose iterators for the
+  // EffectSet will assert if we do that.
+  nsTArray<RefPtr<KeyframeEffect>> effects;
+  for (KeyframeEffect* effect : aEffectSet) {
+    effects.AppendElement(effect);
+  }
+
+  CompactFillEffect* previousEffect = nullptr;
+  for (KeyframeEffect* effect : effects) {
+    CompactFillEffect* compactFillEffect = effect->AsCompactFillEffect();
+    if (!compactFillEffect || !compactFillEffect->CanBeCombined()) {
+      previousEffect = nullptr;
+      continue;
+    }
+
+    if (!previousEffect) {
+      previousEffect = compactFillEffect;
+      continue;
+    }
+
+    if (previousEffect->CombineWith(*compactFillEffect)) {
+      aEffectSet.RemoveEffect(*effect);
+    } else {
+      previousEffect = compactFillEffect;
+    }
+  }
+}
+
 }  // namespace mozilla

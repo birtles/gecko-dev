@@ -26,6 +26,8 @@ class FillEffect : public dom::KeyframeEffect {
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(FillEffect,
                                                          KeyframeEffect)
 
+  FillEffect* AsFillEffect() override { return this; }
+
   void Init(const nsTArray<CompactFillEffect*>& aSourceEffects);
   void NotifyAnimationCanceled() override;
   void NotifyAnimationInvalidated() override;

@@ -828,6 +828,8 @@ bool EffectCompositor::PreTraverseInSubtree(ServoTraversalFlags aFlags,
         continue;
       }
 
+      CompactAnimationUtils::CombineEffects(*effects);
+
       for (KeyframeEffect* effect : *effects) {
         effect->GetAnimation()->WillComposeStyle();
       }
@@ -900,6 +902,7 @@ bool EffectCompositor::PreTraverse(dom::Element* aElement,
 
     if (EffectSet* effects = EffectSet::GetEffectSet(aElement, aPseudoType)) {
       MaybeUpdateCascadeResults(aElement, aPseudoType);
+      CompactAnimationUtils::CombineEffects(*effects);
 
       for (KeyframeEffect* effect : *effects) {
         effect->GetAnimation()->WillComposeStyle();

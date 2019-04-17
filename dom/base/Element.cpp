@@ -59,6 +59,7 @@
 #include "mozilla/AnimationComparator.h"
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/ContentEvents.h"
+#include "mozilla/CompactAnimationUtils.h"
 #include "mozilla/CompactFillEffect.h"
 #include "mozilla/DeclarationBlock.h"
 #include "mozilla/EffectSet.h"
@@ -3544,6 +3545,8 @@ static void FlushFillingEffects(nsTArray<CompactFillEffect*>& aFillingEffects,
 
 static void GetAnimationsWithFillEffects(
     EffectSet& aEffectSet, nsTArray<RefPtr<Animation>>& aAnimations) {
+  CompactAnimationUtils::CombineEffects(aEffectSet);
+
   nsTArray<KeyframeEffect*> sortedEffects;
   for (KeyframeEffect* effect : aEffectSet) {
     sortedEffects.AppendElement(effect);

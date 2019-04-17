@@ -91,6 +91,9 @@ class EffectSet {
 
   bool MayHaveCompactFillEffects() const { return mMayHaveCompactFillEffects; }
 
+  void SetMayNeedCompacting() { mMayNeedCompacting = true; }
+  bool MayNeedCompacting() const { return mMayNeedCompacting; }
+
  private:
   typedef nsTHashtable<nsRefPtrHashKey<dom::KeyframeEffect>> OwningEffectSet;
 
@@ -255,6 +258,7 @@ class EffectSet {
   bool mMayHaveOpacityAnim = false;
   bool mMayHaveTransformAnim = false;
   bool mMayHaveCompactFillEffects = false;
+  bool mMayNeedCompacting = false;
 };
 
 }  // namespace mozilla
