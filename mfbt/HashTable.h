@@ -18,7 +18,8 @@
 //   conditions are true.
 //
 //   - The key type stored in the table (|Key| for |HashMap<Key, Value>|, |T|
-//     for |HashSet<T>|) is an integer, pointer, UniquePtr, float, or double.
+//     for |HashSet<T>|) is an integer, pointer, UniquePtr, RefPtr, float, or
+//     double.
 //
 //   - The type used for lookups (|Lookup|) is the same as the key type. This
 //     is usually the case, but not always.
@@ -88,6 +89,7 @@
 #include "mozilla/OperatorNewExtensions.h"
 #include "mozilla/PodOperations.h"
 #include "mozilla/ReentrancyGuard.h"
+#include "mozilla/RefPtr.h"
 #include "mozilla/TypeTraits.h"
 #include "mozilla/UniquePtr.h"
 
@@ -790,6 +792,24 @@ struct DefaultHasher<UniquePtr<T, D>> {
   static void rekey(UniquePtr<T, D>& aKey, UniquePtr<T, D>&& aNewKey) {
     aKey = std::move(aNewKey);
   }
+};
+
+// A DefaultHasher specialization for mozilla::RefPtr.
+template <typename T>
+struct DefaultHasher<RefPtr<T>> {
+  using Key = RefPtr<T>;
+  using Lookup = T*;
+  using PtrHasher = PointerHasher<T*>;
+
+  static HashNumber hash(const Lookup& aLookup) {
+    return PtrHasher::hash(aLookup);
+  }
+
+  static bool match(const Key& aKey, const Lookup& aLookup) {
+    return PtrHasher::match(aKey.get(), aLookup);
+  }
+
+  static void rekey(Key& aKey, Key&& aNewKey) { aKey = std::move(aNewKey); }
 };
 
 // A DefaultHasher specialization for doubles.
