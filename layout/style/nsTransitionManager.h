@@ -149,7 +149,7 @@ class CSSTransition final : public Animation {
     // defined until that moment.
     //
     // See longer explanation in CSSAnimation::CancelFromStyle.
-    mAnimationIndex = sNextAnimationIndex++;
+    AppendToGlobalAnimationList();
     mNeedsNewAnimationIndexWhenRun = true;
 
     Animation::CancelFromStyle();

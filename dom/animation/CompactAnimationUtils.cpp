@@ -85,6 +85,7 @@ bool IsMarkupAnimation(T* aAnimation) {
   compactedAnimation->SetTimelineNoUpdate(aAnimation.GetTimeline());
   compactedAnimation->SetStartTime(Nullable<TimeDuration>(TimeDuration()));
   compactedAnimation->ShadowAnimationIndex(aAnimation);
+  compactedAnimation->SwapListPosition(aAnimation);
 
   // Setup the effect
   RefPtr<KeyframeEffect> sourceEffect =
@@ -142,6 +143,9 @@ bool IsMarkupAnimation(T* aAnimation) {
 
   sourceEffect->SetLinkedEffect(nullptr);
   compactedEffect->SetLinkedEffect(nullptr);
+
+  // Restore the animation's position in the animation list.
+  aAnimation.SwapListPosition(*compactedEffect->GetAnimation());
 
   // Cancel the compacted animation
   //

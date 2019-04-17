@@ -15,6 +15,7 @@
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/EffectCompositor.h"  // For EffectCompositor::CascadeLevel
 #include "mozilla/LinkedList.h"
+#include "mozilla/Move.h"                  // for Swap
 #include "mozilla/TimeStamp.h"             // for TimeStamp, TimeDuration
 #include "mozilla/dom/AnimationBinding.h"  // for AnimationPlayState
 #include "mozilla/dom/AnimationEffect.h"
@@ -47,20 +48,21 @@ class FillAnimation;
 class Animation : public DOMEventTargetHelper,
                   public LinkedListElement<Animation> {
  protected:
-  virtual ~Animation() {}
+  virtual ~Animation() { RemoveFromGlobalAnimationList(); }
 
  public:
   explicit Animation(nsIGlobalObject* aGlobal)
       : DOMEventTargetHelper(aGlobal),
         mPlaybackRate(1.0),
-        mAnimationIndex(sNextAnimationIndex++),
         mCachedChildIndex(-1),
         mPendingState(PendingState::NotPending),
         mFinishedAtLastComposeStyle(false),
         mIsRelevant(false),
         mFinishedIsResolved(false),
         mSyncWithGeometricAnimations(false),
-        mIsReadOnly(false) {}
+        mIsReadOnly(false) {
+    AppendToGlobalAnimationList();
+  }
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(Animation, DOMEventTargetHelper)
@@ -348,6 +350,7 @@ class Animation : public DOMEventTargetHelper,
   void ShadowAnimationIndex(const Animation& aAnimation) {
     mOverrideAnimationIndex = aAnimation.EffectiveAnimationIndex();
   }
+  void SwapListPosition(Animation& aOther);
 
   /**
    * Returns the level at which the effect(s) associated with this Animation
@@ -537,6 +540,9 @@ class Animation : public DOMEventTargetHelper,
   Document* GetRenderedDocument() const;
   Document* GetTimelineDocument() const;
 
+  void AppendToGlobalAnimationList();
+  void RemoveFromGlobalAnimationList();
+
   RefPtr<AnimationTimeline> mTimeline;
   RefPtr<AnimationEffect> mEffect;
   // The beginning of the delay period.
@@ -578,6 +584,11 @@ class Animation : public DOMEventTargetHelper,
   // While ordering Animation objects for event dispatch, the index of the
   // target node in its parent may be cached in mCachedChildIndex.
   int32_t mCachedChildIndex;
+
+  // Linked-list of animations according to the global animation list.
+  static Animation* sAnimationListTail;
+  Animation* MOZ_NON_OWNING_REF mNextAnimation = nullptr;
+  Animation* MOZ_NON_OWNING_REF mPrevAnimation = nullptr;
 
   // Indicates if the animation is in the pending state (and what state it is
   // waiting to enter when it finished pending). We use this rather than

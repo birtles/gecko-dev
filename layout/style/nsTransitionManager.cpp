@@ -157,7 +157,7 @@ void CSSTransition::UpdateTiming(SeekFlag aSeekFlag,
                                  SyncNotifyFlag aSyncNotifyFlag) {
   if (mNeedsNewAnimationIndexWhenRun &&
       PlayState() != AnimationPlayState::Idle) {
-    mAnimationIndex = sNextAnimationIndex++;
+    AppendToGlobalAnimationList();
     mNeedsNewAnimationIndexWhenRun = false;
   }
 

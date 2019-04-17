@@ -95,7 +95,7 @@ class CSSAnimation final : public Animation {
     // if it had been added to the end of the global animation list so that
     // its sort order is defined. We'll update this index again once the
     // animation leaves the idle state.
-    mAnimationIndex = sNextAnimationIndex++;
+    AppendToGlobalAnimationList();
     mNeedsNewAnimationIndexWhenRun = true;
 
     Animation::CancelFromStyle();

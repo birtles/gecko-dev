@@ -27,9 +27,17 @@ namespace dom {
 
 // Static members
 uint64_t Animation::sNextAnimationIndex = 0;
+Animation* Animation::sAnimationListTail = nullptr;
 
-NS_IMPL_CYCLE_COLLECTION_INHERITED(Animation, DOMEventTargetHelper, mTimeline,
-                                   mEffect, mReady, mFinished)
+NS_IMPL_CYCLE_COLLECTION_CLASS(Animation)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(Animation, DOMEventTargetHelper)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mTimeline, mEffect, mReady, mFinished)
+  tmp->RemoveFromGlobalAnimationList();
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(Animation,
+                                                  DOMEventTargetHelper)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mTimeline, mEffect, mReady, mFinished)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_ADDREF_INHERITED(Animation, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(Animation, DOMEventTargetHelper)
@@ -1632,6 +1640,66 @@ void Animation::QueuePlaybackEvent(const nsAString& aName,
 bool Animation::IsRunningOnCompositor() const {
   return mEffect && mEffect->AsKeyframeEffect() &&
          mEffect->AsKeyframeEffect()->IsRunningOnCompositor();
+}
+
+void Animation::AppendToGlobalAnimationList() {
+  mAnimationIndex = sNextAnimationIndex++;
+  RemoveFromGlobalAnimationList();
+
+  mPrevAnimation = sAnimationListTail;
+  if (sAnimationListTail) {
+    sAnimationListTail->mNextAnimation = this;
+  }
+  sAnimationListTail = this;
+}
+
+void Animation::RemoveFromGlobalAnimationList() {
+  if (sAnimationListTail == this) {
+    MOZ_ASSERT(!mNextAnimation, "List tail should not have a next animation");
+    sAnimationListTail = mPrevAnimation;
+  }
+  if (mPrevAnimation) {
+    mPrevAnimation->mNextAnimation = mNextAnimation;
+  }
+  if (mNextAnimation) {
+    mNextAnimation->mPrevAnimation = mPrevAnimation;
+  }
+  mPrevAnimation = nullptr;
+  mNextAnimation = nullptr;
+}
+
+void Animation::SwapListPosition(Animation& aOther) {
+  Swap(mPrevAnimation, aOther.mPrevAnimation);
+  Swap(mNextAnimation, aOther.mNextAnimation);
+
+  // Fix up for adjacent animations
+  if (mNextAnimation == this) {
+    mNextAnimation = &aOther;
+    aOther.mPrevAnimation = this;
+  }
+  if (mPrevAnimation == this) {
+    mPrevAnimation = &aOther;
+    aOther.mNextAnimation = this;
+  }
+
+  if (mPrevAnimation) {
+    mPrevAnimation->mNextAnimation = this;
+  }
+  if (mNextAnimation) {
+    mNextAnimation->mPrevAnimation = this;
+  }
+  if (aOther.mPrevAnimation) {
+    aOther.mPrevAnimation->mNextAnimation = &aOther;
+  }
+  if (aOther.mNextAnimation) {
+    aOther.mNextAnimation->mPrevAnimation = &aOther;
+  }
+
+  if (sAnimationListTail == this) {
+    sAnimationListTail = &aOther;
+  } else if (sAnimationListTail == &aOther) {
+    sAnimationListTail = this;
+  }
 }
 
 }  // namespace dom
