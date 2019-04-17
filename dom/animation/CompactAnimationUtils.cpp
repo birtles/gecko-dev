@@ -12,6 +12,7 @@
 #include "mozilla/AnimationTarget.h"
 #include "mozilla/CompactFillEffect.h"
 #include "mozilla/EffectSet.h"
+#include "mozilla/KeyframeEffectComparator.h"
 #include "mozilla/TimeStamp.h"  // For TimeDuration
 
 using namespace mozilla::dom;
@@ -187,13 +188,11 @@ bool IsMarkupAnimation(T* aAnimation) {
     return;
   }
 
-  // Copy the effect pointers to an array since we need to modify the EffectSet
-  // while iterating it and the way we currently expose iterators for the
-  // EffectSet will assert if we do that.
   nsTArray<RefPtr<KeyframeEffect>> effects;
   for (KeyframeEffect* effect : aEffectSet) {
     effects.AppendElement(effect);
   }
+  effects.Sort(KeyframeEffectComparator());
 
   CompactFillEffect* previousEffect = nullptr;
   for (KeyframeEffect* effect : effects) {
