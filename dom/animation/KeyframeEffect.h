@@ -224,7 +224,7 @@ class KeyframeEffect : public AnimationEffect,
   bool HasAnimationOfPropertySet(const nsCSSPropertyIDSet& aPropertySet) const;
   nsCSSPropertyIDSet GetPropertySet() const;
 
-  // GetEffectiveAnimationOfProperty returns AnimationProperty corresponding
+  // GetEffectiveAnimationsOfProperty returns AnimationProperty corresponding
   // to a given CSS property if the effect includes the property and the
   // property is not overridden by !important rules.
   // Also EffectiveAnimationOfProperty returns true under the same condition.
@@ -238,9 +238,9 @@ class KeyframeEffect : public AnimationEffect,
   // transform properties.
   bool HasEffectiveAnimationOfProperty(nsCSSPropertyID aProperty,
                                        const EffectSet& aEffect) const {
-    return GetEffectiveAnimationOfProperty(aProperty, aEffect) != nullptr;
+    return !GetEffectiveAnimationsOfProperty(aProperty, aEffect).IsEmpty();
   }
-  const AnimationProperty* GetEffectiveAnimationOfProperty(
+  nsTArray<const AnimationProperty*> GetEffectiveAnimationsOfProperty(
       nsCSSPropertyID aProperty, const EffectSet& aEffect) const;
 
   // Similar to HasEffectiveAnimationOfProperty, above, but for
@@ -276,6 +276,13 @@ class KeyframeEffect : public AnimationEffect,
   nsCSSPropertyIDSet GetPropertiesForCompositor(EffectSet& aEffects,
                                                 const nsIFrame* aFrame) const;
 
+  // The computed values used to animate each longhand property targeted by this
+  // effect.
+  //
+  // Typically the returned array contains one |AnimationProperty| per CSS
+  // property being animated. However, for a CompactFillEffect that represents
+  // the effects of multiple filling animations, there may be multiple
+  // |AnimationProperty| objects per CSS property.
   const InfallibleTArray<AnimationProperty>& Properties() const {
     return mProperties;
   }

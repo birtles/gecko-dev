@@ -448,25 +448,32 @@ FillSnapshot KeyframeEffect::GetFillSnapshot() const {
   return result;
 }
 
-const AnimationProperty* KeyframeEffect::GetEffectiveAnimationOfProperty(
+nsTArray<const AnimationProperty*>
+KeyframeEffect::GetEffectiveAnimationsOfProperty(
     nsCSSPropertyID aProperty, const EffectSet& aEffects) const {
   MOZ_ASSERT(&aEffects ==
              EffectSet::GetEffectSet(mTarget->mElement, mTarget->mPseudoType));
+
+  nsTArray<const AnimationProperty*> result;
 
   for (const AnimationProperty& property : mProperties) {
     if (aProperty != property.mProperty) {
       continue;
     }
 
-    const AnimationProperty* result = nullptr;
     // Only include the property if it is not overridden by !important rules in
     // the transitions level.
     if (IsEffectiveProperty(aEffects, property.mProperty)) {
-      result = &property;
+      result.AppendElement(&property);
+    } else {
+      // Although there could be more properties in |mProperties| that target
+      // |aProperty| (when we are a CompactFillEffect encompassing multiply
+      // filling animations) they shouldn't differ in effective-ness.
+      return result;
     }
-    return result;
   }
-  return nullptr;
+
+  return result;
 }
 
 bool KeyframeEffect::HasEffectiveAnimationOfPropertySet(

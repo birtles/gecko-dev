@@ -717,20 +717,20 @@ static void AddAnimationsForProperty(
         anim->GetEffect() ? anim->GetEffect()->AsKeyframeEffect() : nullptr;
     MOZ_ASSERT(keyframeEffect,
                "A playing animation should have a keyframe effect");
-    const AnimationProperty* property =
-        keyframeEffect->GetEffectiveAnimationOfProperty(aProperty, *aEffects);
-    if (!property) {
+    nsTArray<const AnimationProperty*> properties =
+        keyframeEffect->GetEffectiveAnimationsOfProperty(aProperty, *aEffects);
+    if (properties.IsEmpty()) {
       continue;
     }
 
     // Note that if the property is overridden by !important rules,
-    // GetEffectiveAnimationOfProperty returns null instead.
+    // GetEffectiveAnimationsOfProperty returns an empty array instead.
     // This is what we want, since if we have animations overridden by
     // !important rules, we don't want to send them to the compositor.
     MOZ_ASSERT(
         anim->CascadeLevel() != EffectCompositor::CascadeLevel::Animations ||
             !aEffects->PropertiesWithImportantRules().HasProperty(aProperty),
-        "GetEffectiveAnimationOfProperty already tested the property "
+        "GetEffectiveAnimationsOfProperty already tested the property "
         "is not overridden by !important rules");
 
     // Don't add animations that are pending if their timeline does not
@@ -748,8 +748,14 @@ static void AddAnimationsForProperty(
       continue;
     }
 
-    AddAnimationForProperty(aFrame, *property, anim, aData, aSendFlag,
-                            aAnimationInfo);
+    for (const AnimationProperty* property : properties) {
+      MOZ_ASSERT(
+          property,
+          "Properties returned from GetEffectiveAnimationsOfProperty should"
+          " not be null");
+      AddAnimationForProperty(aFrame, *property, anim, aData, aSendFlag,
+                              aAnimationInfo);
+    }
     keyframeEffect->SetIsRunningOnCompositor(aProperty, true);
   }
 }
